@@ -307,10 +307,10 @@ html {
 .cbtn {
   background:linear-gradient(135deg, rgba(45,20,87,.75) 0%, rgba(26,10,46,.88) 100%);
   border:1px solid rgba(201,168,76,.28);
-  border-radius:5px; padding:11px 14px;
-  color:var(--white); font-size:13.5px;
+  border-radius:5px; padding:9px 12px;
+  color:var(--white); font-size:12.5px;
   font-family:'Noto Serif JP',serif; font-weight:300;
-  line-height:1.65; text-align:left;
+  line-height:1.5; text-align:left;
   cursor:pointer; transition:all .22s;
   position:relative; flex-shrink:0;
 }
@@ -421,17 +421,15 @@ html {
 
 /* mute button */
 #mute-btn {
-  position:fixed; bottom:18px; left:18px;
-  width:36px; height:36px; border-radius:50%;
-  background:rgba(26,10,46,0.75);
-  border:1px solid rgba(201,168,76,0.35);
-  color:var(--gold-l); font-size:15px;
-  cursor:pointer; z-index:60;
+  position:absolute; bottom:12px; right:12px;
+  width:26px; height:26px; border-radius:50%;
+  background:rgba(26,10,46,0.7);
+  border:1px solid rgba(201,168,76,0.3);
+  color:var(--gold-l); font-size:11px;
+  cursor:pointer; z-index:20;
   display:flex; align-items:center; justify-content:center;
   transition:all .25s;
-  backdrop-filter:blur(4px);
 }
-#mute-btn:hover { border-color:var(--gold); background:rgba(45,20,87,0.85); }
 
 /* transition */
 #ov {
@@ -471,6 +469,7 @@ html {
       <div class="sdot fire"  id="d-fire"></div>
       <div class="sdot deep"  id="d-deep"></div>
     </div>
+    <button id="mute-btn" onclick="toggleMute()" title="音楽ON/OFF">🔊</button>
   </div>
   <div id="txt-area" onclick="handleTap()">
     <div id="spk-name"></div>
@@ -514,8 +513,7 @@ html {
   <button class="rs-btn" onclick="location.reload()">も う 一 度</button>
 </div>
 
-<!-- MUTE BUTTON -->
-<button id="mute-btn" onclick="toggleMute()">🔊</button>
+<!-- MUTE BUTTON is inside img-wrap above -->
 
 <script>
 // ═══════════════════════════════════════════
@@ -572,6 +570,7 @@ const SCENE_BGM_MAP = {
 // 戦闘シーン（戦闘終了後は章のBGMに戻る）
 const BATTLE_SCENES = new Set([
   '1-2',                                    // 第1章 イブキ戦
+  'scene_10',                               // 第2章 忘却の影司祭戦
   '3-8', '3-9', '3-12',                    // 第3章 嘆きの谷
   '4-7',                                    // 第4章 星喰いの影
   '5-4', '5-5', '5-6',                     // 第5章 廊下
@@ -881,7 +880,11 @@ function startTitle() {
   document.getElementById('title-screen').classList.remove('active');
   document.getElementById('game-screen').classList.add('active');
   buildAllSteps();
-  playBGM('title');
+  // iOS対応：ユーザー操作直後にBGM再生
+  try {
+    currentBGMKey = null;
+    playBGM('title');
+  } catch(e) {}
   showStep();
 }
 
@@ -932,15 +935,15 @@ function buildAllSteps() {
 // ── HELPERS ──
 function pushStep(obj) { steps.push(obj); }
 
-function pushLines(lines, imageId, chapterId, titleHint) {
-  // lines: array of {type/speaker, text, ...}
+function pushLines(lines, imageId, chapterId, titleHint, sceneId) {
   (lines || []).forEach(line => {
     const t = line.type || detectType(line.speaker);
     const text = Array.isArray(line.text) ? line.text.join('\n') : (line.text || '');
     pushStep({
       type: t, imageId, chapterId,
       speaker: line.speaker || '',
-      text, title: titleHint || ''
+      text, title: titleHint || '',
+      sceneId: sceneId || ''
     });
   });
 }
@@ -951,7 +954,7 @@ function detectType(speaker) {
   return 'dialogue';
 }
 
-function pushBlocks(blocks, imageId, chapterId, titleHint) {
+function pushBlocks(blocks, imageId, chapterId, titleHint, sceneId) {
   // blocks: {speaker, text} where speaker "—" = narration
   (blocks || []).forEach(b => {
     const isSpeaker = b.speaker && b.speaker !== '—';
@@ -959,7 +962,7 @@ function pushBlocks(blocks, imageId, chapterId, titleHint) {
       : b.speaker.includes('心の声') ? 'thought'
       : 'dialogue';
     const text = Array.isArray(b.text) ? b.text.join('\n') : (b.text || '');
-    pushStep({ type:t, imageId, chapterId, speaker:b.speaker||'', text, title:titleHint||'' });
+    pushStep({ type:t, imageId, chapterId, speaker:b.speaker||'', text, title:titleHint||'', sceneId: sceneId||'' });
   });
 }
 
@@ -1089,11 +1092,9 @@ function buildChapter1() {
     const title = sc.title || '';
 
     if (sc.type === 'story' || sc.type === 'narration_block') {
-      pushLines(sc.lines, img, cid, title);
+      pushLines(sc.lines, img, cid, title, sc.id);
     } else if (sc.type === 'choice') {
-      // pre-choice lines
-      pushLines(sc.lines, img, cid, title);
-      // choice step
+      pushLines(sc.lines, img, cid, title, sc.id);
       const opts = (sc.choice?.options || []).map(o => ({
         label: o.label,
         score: o.score || {},
@@ -1101,7 +1102,7 @@ function buildChapter1() {
         afterImg: resolveImg(o.image, cid) || img,
         inlineNextId: null
       }));
-      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice?.question||'', title, choices:opts });
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice?.question||'', title, choices:opts, sceneId: sc.id });
     }
 
     curId = sc.next || null;
@@ -1163,9 +1164,9 @@ function buildChapter3() {
     const title = sc.title || '';
 
     if (sc.type === 'story') {
-      pushLines(sc.lines, img, cid, title);
+      pushLines(sc.lines, img, cid, title, sc.id);
     } else if (sc.type === 'choice') {
-      pushLines(sc.lines, img, cid, title);
+      pushLines(sc.lines, img, cid, title, sc.id);
       const opts = (sc.choice?.options || []).map(o => ({
         label: o.label,
         score: o.score || {},
@@ -1206,9 +1207,9 @@ function buildChapter4() {
     const title = sc.title || '';
 
     if (!sc.choice) {
-      pushBlocks(sc.blocks, img, cid, title);
+      pushBlocks(sc.blocks, img, cid, title, sc.id);
     } else {
-      pushBlocks(sc.blocks, img, cid, title);
+      pushBlocks(sc.blocks, img, cid, title, sc.id);
       const opts = (sc.choice.options || []).map(o => ({
         label: o.label,
         score: o.score || {},
@@ -1243,9 +1244,9 @@ function buildChapter5() {
     const title = sc.title || '';
 
     if (!sc.choices) {
-      pushBlocks(sc.blocks, img, cid, title);
+      pushBlocks(sc.blocks, img, cid, title, sc.id);
     } else {
-      pushBlocks(sc.blocks, img, cid, title);
+      pushBlocks(sc.blocks, img, cid, title, sc.id);
       const opts = (sc.choices || []).map(o => ({
         label: o.label,
         score: o.score || {},
@@ -1270,7 +1271,7 @@ function buildEnding() {
   data.scenes.forEach(sc => {
     const img = resolveImg(sc.image, cid);
     const title = sc.title || '';
-    pushLines(sc.lines, img, cid, title);
+    pushLines(sc.lines, img, cid, title, sc.id);
   });
 
   // result screen step
@@ -1986,8 +1987,135 @@ const CH2_DATA = {
       {type:"dialogue",speaker:"影の声",text:"また言うのか。大丈夫、と"},
       {type:"dialogue",speaker:"コトハ",text:"……！"},
       {type:"dialogue",speaker:"じょりぃ",text:"今の声……神殿の奥からだよ"},
-      {type:"dialogue",speaker:"イブキ",text:"やっぱり、ただの神殿じゃなさそうだな"},
+      {type:"dialogue",speaker:"イブキ",text:"やっぱり、ただの神殿じゃなさそうだな"}
+    ]},
+    {id:"scene_5",title:"言えなかった言葉の扉",image:"2-5.png",content:[
+      {type:"narration",text:"一行は神殿の大扉の前へとたどり着く。扉には古い文字が浮かび上がっていた。"},
+      {type:"narration",text:"扉の文字：この扉は、言えなかった言葉で開く"},
+      {type:"dialogue",speaker:"イブキ",text:"妙な仕掛けだな……"},
+      {type:"dialogue",speaker:"コトハ",text:"そんなはずは……。ただの封印なら、魔法で解けるはず……"},
+      {type:"narration",text:"コトハが杖を構える。だが、詠唱の途中で言葉が止まった。"},
+      {type:"dialogue",speaker:"コトハ",text:"私は……私は……"},
+      {type:"narration",text:"白い霧が足元にまとわりつく。そして、声が響いた。"},
+      {type:"dialogue",speaker:"影の声",text:"言えないのなら、忘れてしまえ"},
+      {type:"dialogue",speaker:"影の声",text:"本音など、なくしてしまえばいい"},
+      {type:"thought",speaker:"name",text:"言えなかった言葉。そんなもの、もうないと思っていた。でも、本当は違う。忘れたんじゃない。しまいこんでいただけだったのかもしれない。"}
+    ],choices:[
+      {id:"choice_5_1",text:"扉に近づき、先に触れてみる",score:"light",point:1},
+      {id:"choice_5_2",text:"扉の文字や仕組みをよく調べる",score:"moon",point:1},
+      {id:"choice_5_3",text:"まずはコトハの様子を気づかう",score:"fire",point:1},
+      {id:"choice_5_4",text:"自分の胸のざわつきに意識を向ける",score:"deep",point:1}
+    ],afterChoice:[
+      {type:"narration",text:"扉に光が走る。まるで誰かの心が、少しだけほどけたように。"},
+      {type:"narration",text:"やがて重い音を立てて、扉はゆっくり開いていった。"}
+    ]},
+    {id:"scene_6",title:"記憶の部屋",image:"2-6.png",content:[
+      {type:"narration",text:"扉の先に広がっていたのは、淡い光に満ちた不思議な空間だった。"},
+      {type:"narration",text:"空気の中に、言葉の欠片が浮かんでいる。誰かの想い。誰かのため息。誰かが飲み込んだ、本当の気持ち。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"ここは「記憶の部屋」みたい。言えなかった言葉が、かたちになって残ってるんだね"},
+      {type:"thought",speaker:"name",text:"胸が苦しい。ここにあるのは、綺麗な思い出じゃない。誰にも見せられなくて、誰にも言えなくて、心の奥にしまいこんだ気持ちたちだ。"},
+      {type:"thought",speaker:"name",text:"本当は嫌だった。本当は寂しかった。本当は助けてほしかった。"},
+      {type:"thought",speaker:"name",text:"でも、言えなかった。言ったら困らせると思った。言ったら弱いと思われる気がした。"},
+      {type:"thought",speaker:"name",text:"私はヒーラーになりたい。誰かを癒したいと思っている。でも――私の中にも、まだ癒されていない場所がある。"},
+      {type:"dialogue",speaker:"イブキ",text:"顔色が悪いぞ。大丈夫か？"},
+      {type:"dialogue",speaker:"name",text:"うん……大丈夫。でも、少しだけ……胸が痛い"},
+      {type:"dialogue",speaker:"じょりぃ",text:"痛くてもいいんだよ。感じたこと、なかったことにしなくていい"},
+      {type:"narration",text:"一行はさらに奥へ進んでいく。"}
+    ]},
+    {id:"scene_7",title:"コトハの過去",image:"2-7.png",content:[
+      {type:"narration",text:"部屋の奥で、ひときわ強く光る記憶が揺れた。そこには、過去のコトハの姿が映っていた。"},
+      {type:"narration",text:"誰かに頼られ、笑って頷くコトハ。疲れていても、傷ついていても、「大丈夫です」と言い続けるコトハ。"},
+      {type:"dialogue",speaker:"幻影のコトハ",text:"私がやります"},
+      {type:"dialogue",speaker:"幻影のコトハ",text:"平気です"},
+      {type:"dialogue",speaker:"幻影のコトハ",text:"迷惑はかけませんから"},
+      {type:"dialogue",speaker:"じょりぃ",text:"ずっと、自分の気持ちを閉じこめてきたんだね……"},
+      {type:"dialogue",speaker:"コトハ",text:"違います……！"},
+      {type:"dialogue",speaker:"コトハ",text:"私は、ただ……誰にも迷惑をかけたくなかっただけです"},
+      {type:"thought",speaker:"name",text:"「迷惑をかけたくない」その言葉が、胸に刺さった。"},
+      {type:"thought",speaker:"name",text:"私も、そう思ってきたことがある。頼ったらいけない。弱音を吐いたらいけない。ちゃんとしていなきゃいけない。"},
+      {type:"thought",speaker:"name",text:"でも、その「ちゃんと」の中で、本当の気持ちは、どこへ行ってしまったんだろう。"}
+    ],choices:[
+      {id:"choice_7_1",text:"一人で抱えなくていいよ",score:"light",point:1},
+      {id:"choice_7_2",text:"何があったのか、話せる範囲で聞かせて",score:"moon",point:1},
+      {id:"choice_7_3",text:"ずっとつらかったんだね",score:"fire",point:1},
+      {id:"choice_7_4",text:"「迷惑をかけたくない」は、本音を隠す言葉にもなると思う",score:"deep",point:1}
+    ],afterChoice:[
+      {type:"narration",text:"その瞬間、部屋全体が大きく揺れた。"},
+      {type:"narration",text:"白い霧が一気に流れ込み、奥の祭壇への道が開く。"}
+    ]},
+    {id:"scene_8",title:"最奥の祭壇",image:"2-8.png",content:[
+      {type:"narration",text:"記憶の部屋を抜けた先には、古びた祭壇があった。中央には、白い霧の渦が静かにうごめいている。"},
+      {type:"dialogue",speaker:"影の声",text:"言葉にしなければ、傷つかない"},
+      {type:"dialogue",speaker:"影の声",text:"忘れてしまえば、楽になれる"},
+      {type:"dialogue",speaker:"影の声",text:"大丈夫と言えば、それで済む"},
+      {type:"dialogue",speaker:"イブキ",text:"こいつが元凶か……！"},
+      {type:"dialogue",speaker:"じょりぃ",text:"ううん。この影は、誰かの本音を閉じこめて大きくなったんだ"},
+      {type:"thought",speaker:"name",text:"その声は、やさしかった。だからこそ、怖かった。"},
+      {type:"thought",speaker:"name",text:"「忘れればいい」「言わなければいい」「平気なふりをしていればいい」少し前の私なら、その言葉に頷いていたかもしれない。"},
+      {type:"thought",speaker:"name",text:"でも今は違う。私には、じょりぃがいる。イブキがいる。そして、ここにはコトハもいる。"},
+      {type:"thought",speaker:"name",text:"言えなかった言葉を取り戻すことは、誰かを責めることじゃない。自分の心を、迎えに行くことなんだ。"}
+    ]},
+    {id:"scene_9",title:"忘却の影司祭",image:"2-9.png",content:[
+      {type:"narration",text:"白い霧が集まり、ひとつの影が姿を現した。長い衣のような霧をまとい、静かに浮かぶ男の影司祭。"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"本音など、誰も望まぬ"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"言葉にしなければ、苦しみは消える"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"沈黙せよ。忘れてしまえ"},
+      {type:"dialogue",speaker:"コトハ",text:"私の……言葉を……返して……！"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"返すものなどない。お前が捨てたのだ"},
+      {type:"dialogue",speaker:"イブキ",text:"ふざけるな！"}
+    ]},
+    {id:"scene_10",title:"戦闘",image:"2-10.png",content:[
+      {type:"narration",text:"戦いが始まる。イブキが前へ出て剣を振るい、nameは後衛から光の癒しで支える。じょりぃは小さな光を放ちながら、霧の流れを見つめていた。"},
+      {type:"narration",text:"だが、影司祭は霧を広げ、コトハの声を何度もかき消していく。"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"沈黙せよ"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"お前の言葉に価値はない"},
+      {type:"dialogue",speaker:"コトハ",text:"私は……っ……！"},
+      {type:"thought",speaker:"name",text:"言葉にするのは怖い。本音を出すのは怖い。でも、怖いままでもいい。震えながらでもいい。その一言が、光になることがある。"}
+    ],choices:[
+      {id:"choice_10_1",text:"コトハ、言って！ 今なら届く！",score:"light",point:1},
+      {id:"choice_10_2",text:"影の動きを見て。声を奪う瞬間に隙がある！",score:"moon",point:1},
+      {id:"choice_10_3",text:"コトハ、大丈夫じゃなくてもここにいていいよ！",score:"fire",point:1},
+      {id:"choice_10_4",text:"「平気」じゃない本音こそが、あなたの魔法になる！",score:"deep",point:1}
+    ],afterChoice:[
+      {type:"narration",text:"nameの言葉が、霧の中をまっすぐに届く。"},
+      {type:"narration",text:"コトハの瞳が大きく揺れた。"}
+    ]},
+    {id:"scene_11",title:"コトハの覚醒",image:"2-11.png",content:[
+      {type:"narration",text:"コトハは震えながら、杖を握りしめる。"},
+      {type:"dialogue",speaker:"コトハ",text:"私は……"},
+      {type:"dialogue",speaker:"コトハ",text:"私は……平気なんかじゃなかった……！"},
+      {type:"narration",text:"霧がざわめく。"},
+      {type:"dialogue",speaker:"コトハ",text:"苦しかった……！"},
+      {type:"dialogue",speaker:"コトハ",text:"つらかった……！"},
+      {type:"dialogue",speaker:"コトハ",text:"本当は……助けてって、言いたかった……！"},
+      {type:"narration",text:"その瞬間、杖が強く光を放つ。閉じこめられていた言葉が、ひとつずつ解き放たれていく。"},
+      {type:"dialogue",speaker:"コトハ",text:"ことばよ、光となれ――！"},
+      {type:"narration",text:"眩しい光が祭壇を包み込み、白い霧をまっすぐに貫いた。"},
+      {type:"dialogue",speaker:"忘却の影司祭",text:"やめろ……！本音を、取り戻すな……！"},
+      {type:"narration",text:"霧は裂け、影は光の中に溶けていった。"}
+    ]},
+    {id:"scene_12",title:"浄化された神殿",image:"2-12.png",content:[
+      {type:"narration",text:"気づけば、神殿の空気はやわらかく変わっていた。白い霧は消え、祭壇の上には静かな光が差している。"},
+      {type:"dialogue",speaker:"コトハ",text:"……ありがとう"},
+      {type:"dialogue",speaker:"コトハ",text:"言葉にするのが、怖かったんです。言ってしまったら、何かが壊れてしまう気がして"},
+      {type:"dialogue",speaker:"name",text:"でも、言えた言葉は……きっともう消えない"},
+      {type:"dialogue",speaker:"じょりぃ",text:"うん。本音ってね、光になるんだよ"},
+      {type:"dialogue",speaker:"イブキ",text:"これからは、一人で抱え込むな"},
+      {type:"narration",text:"コトハは少しだけ目を見開き、それから、今度は本当にやわらかく微笑んだ。"},
+      {type:"dialogue",speaker:"コトハ",text:"……はい。もしよければ、私も一緒に旅をさせてください"},
+      {type:"thought",speaker:"name",text:"また一人、仲間が増えた。それは、ただ戦力が増えたということじゃない。誰かの本音が、光として旅に加わったということだった。"},
       {type:"system",text:"コトハ加入"}
+    ]},
+    {id:"scene_13",title:"次の行き先",image:"2-13.png",content:[
+      {type:"narration",text:"じょりぃが光の地図を広げる。すると、新たな場所に淡い光が灯った。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"次は……嘆きの谷"},
+      {type:"dialogue",speaker:"イブキ",text:"名前からして、穏やかじゃなさそうだな"},
+      {type:"dialogue",speaker:"コトハ",text:"深い悲しみの気配がします……。ずっと、助けを呼べなかったような"},
+      {type:"dialogue",speaker:"name",text:"行こう。どんな影が待っていても……今度も、ちゃんと向き合いたい"},
+      {type:"thought",speaker:"name",text:"怖さがなくなったわけじゃない。不安が消えたわけでもない。"},
+      {type:"thought",speaker:"name",text:"それでも、私は知っている。ひとりじゃないこと。言葉にできること。本音が、光になることを。"},
+      {type:"thought",speaker:"name",text:"だからきっと、次の場所へも進める。"},
+      {type:"narration",text:"こうして一行は、新たな仲間コトハとともに次なる地――嘆きの谷へ向かうのだった。"}
     ]}
   ]
 };
