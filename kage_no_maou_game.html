@@ -316,24 +316,6 @@ html {
   animation:blink 1.8s ease-in-out infinite;
 }
 
-/* 戻るボタン */
-#back-btn {
-  display:none;
-  position:absolute; bottom:12px; left:12px;
-  width:30px; height:30px; border-radius:50%;
-  background:rgba(26,10,46,0.7);
-  border:1px solid rgba(201,168,76,0.25);
-  color:rgba(201,168,76,0.55); font-size:13px;
-  cursor:pointer; z-index:20;
-  align-items:center; justify-content:center;
-  transition:all .25s;
-}
-#back-btn.show { display:flex; }
-#back-btn:hover, #back-btn:active {
-  border-color:rgba(201,168,76,0.6);
-  color:var(--gold-l);
-  background:rgba(45,20,87,0.85);
-}
 .choice-lbl {
   font-size:10px; letter-spacing:.25em; color:var(--gold);
   font-family:'Noto Sans JP',sans-serif; font-weight:300;
@@ -362,7 +344,27 @@ html {
   transform:translateX(3px);
 }
 
-/* name input overlay */
+/* タイプライター画面 */
+#typewriter-wrap {
+  display:none; position:absolute; inset:0;
+  background:rgba(10,3,22,0.97);
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:32px 28px; z-index:30;
+  cursor:pointer;
+}
+#typewriter-wrap.show { display:flex; }
+#typewriter-text {
+  font-family:'Noto Serif JP',serif; font-weight:300;
+  font-size:13.5px; line-height:2.1; letter-spacing:.06em;
+  color:rgba(235,225,210,0.92); white-space:pre-wrap;
+  text-align:left; max-width:320px; width:100%;
+}
+#typewriter-hint {
+  margin-top:28px; font-size:10px; letter-spacing:.28em;
+  color:rgba(201,168,76,0.45); font-family:'Noto Sans JP',sans-serif;
+  opacity:0; transition:opacity 1.2s;
+}
+#typewriter-hint.show { opacity:1; }
 #name-input-overlay {
   display:none; position:fixed; inset:0;
   background:rgba(20,6,40,.9); z-index:80;
@@ -514,7 +516,12 @@ html {
       <div class="choice-lbl">— どう声をかける？ —</div>
     </div>
     <div id="choice-fade"><span id="choice-fade-arrow">▼</span></div>
-    <button id="back-btn" onclick="goBack()" title="ひとつ戻る">◁</button>
+  </div>
+
+  <!-- タイプライター画面 -->
+  <div id="typewriter-wrap" onclick="skipOrNextTypewriter()">
+    <div id="typewriter-text"></div>
+    <div id="typewriter-hint">▼ タップして次へ</div>
   </div>
 </div>
 
@@ -537,7 +544,7 @@ html {
 </div>
 
 <!-- RESULT SCREEN -->
-<div id="result-screen" class="screen">
+<div id="result-screen" class="screen" onclick="proceedToFin()">
   <div class="rs-eyebrow">あなたの旅のしるし</div>
   <div class="rs-icon" id="rs-icon"></div>
   <div class="rs-typename" id="rs-typename"></div>
@@ -547,7 +554,7 @@ html {
   <div class="rs-div"></div>
   <div class="rs-common-title" id="rs-ctitle"></div>
   <div class="rs-common-text" id="rs-ctext"></div>
-  <button class="rs-btn" onclick="location.reload()">も う 一 度</button>
+  <div style="margin-top:28px;font-size:11px;letter-spacing:.25em;color:rgba(201,168,76,0.6);font-family:'Noto Sans JP',sans-serif;">▼ タップして続ける</div>
 </div>
 
 <!-- MUTE BUTTON is inside img-wrap above -->
@@ -795,7 +802,6 @@ const $txt     = document.getElementById('dlg-text');
 const $tapHint = document.getElementById('tap-hint');
 const $choices = document.getElementById('choice-panel');
 const $ov      = document.getElementById('ov');
-const $backBtn = document.getElementById('back-btn');
 const $choiceFade = document.getElementById('choice-fade');
 
 // ═══════════════════════════════════════════
@@ -850,7 +856,10 @@ const SafeStorage = (function() {
 
 function saveProgress() {
   try {
-    const data = { playerName, scores, lastScore, stepIdx };
+    // 現在の章IDも保存して、続きから時に章先頭に安全ジャンプできるようにする
+    const currentStep = steps[stepIdx];
+    const currentChapterId = currentStep ? currentStep.chapterId : null;
+    const data = { playerName, scores, lastScore, stepIdx, currentChapterId };
     SafeStorage.set(SAVE_KEY, JSON.stringify(data));
   } catch(e) {}
 }
@@ -884,7 +893,26 @@ function continueGame() {
   document.getElementById('game-screen').classList.add('active');
 
   buildAllSteps();
-  stepIdx = Math.min(saved.stepIdx || 0, steps.length - 1);
+
+  // 動的injectで増減するstepsに対して安全にジャンプ
+  // 保存された章IDの先頭stepへジャンプし、そこからstepIdxを調整
+  const savedChapterId = saved.currentChapterId;
+  const savedStepIdx = saved.stepIdx || 0;
+
+  if (savedChapterId) {
+    // その章の最初のstepインデックスを探す
+    const chapterStart = steps.findIndex(s => s.chapterId === savedChapterId);
+    if (chapterStart >= 0) {
+      // 章内でのオフセット（動的inject分はリセットして章先頭から）
+      // 章先頭から始まるのが安全
+      stepIdx = chapterStart;
+    } else {
+      stepIdx = Math.min(savedStepIdx, steps.length - 1);
+    }
+  } else {
+    stepIdx = Math.min(savedStepIdx, steps.length - 1);
+  }
+
   updateScoreDots();
   const step = steps[stepIdx];
   if (step) updateBGMForStep(step);
@@ -1119,10 +1147,11 @@ function buildChapter1() {
   const sceneMap = {};
   scenes.forEach(s => sceneMap[s.id] = s);
 
-  // 直線シーンのみ順番に処理（分岐先はinlineNextIdで動的展開）
-  // 直線シーン：1-1〜1-5、1-7-1〜1-7-3、1-8、1-9
-  // 分岐シーン：1-5-x, 1-6-x, 1-7-4-x はchoice選択後に動的挿入
-  const mainFlow = ['1-1','1-2','1-3','1-4','1-5','1-7-1','1-7-2','1-7-3','1-8','1-9'];
+  // 直線メインフロー：選択前まで＋選択後の共通シーン（1-8, 1-9）
+  // 1-5→分岐→1-7-1まではcollectBranchStepsで動的挿入
+  // 1-7-3→分岐→1-8はcollectBranchStepsで動的挿入
+  // 1-8, 1-9はcollectBranchStepsの末尾に含まれる（合流点として自然に到達）
+  const mainFlow = ['1-1','1-2','1-3','1-4','1-5'];
 
   mainFlow.forEach(sid => {
     const sc = sceneMap[sid];
@@ -1131,12 +1160,10 @@ function buildChapter1() {
     const img = resolveImg(sc.image || '', cid);
     const title = sc.title || '';
 
-    // linesを出力
     if (sc.lines && sc.lines.length) {
       pushLines(sc.lines, img, cid, title, sc.id);
     }
 
-    // choicesがある場合は選択肢ステップを追加（inlineNextId方式）
     if (sc.choices && sc.choices.length) {
       const opts = sc.choices.map(c => ({
         label: c.text,
@@ -1317,6 +1344,16 @@ function buildEnding() {
   // result screen step
   pushStep({ type:'resultScreen', imageId:'', chapterId:cid, speaker:'', text:'', title:'' });
 
+  // ── タイプライターメッセージ 3ページ（resultScreen→FINの間）──
+  const typewriterPages = [
+    `ここまで旅をしてくれて、ありがとう。\n\nこの物語に出てきた「影」は、\nあなたの弱さではありません。\n\nそれは、ずっと奥にしまってきた気持ち。\n\n「私なんて」\n「どうせ無理」\n「ちゃんとしなきゃ」\n「迷惑をかけちゃいけない」\n\nそんな小さな言葉たちが、\n気づかれないまま積み重なったものです。`,
+    `でも、影は倒すためだけにあるものではありません。\n\n本当は、\n気づいてほしかった気持ち。\n聞いてほしかった本音。\n守ろうとしてくれていた心の一部。\n\nこの旅は、\n心理学の「感情に気づき、受け止める視点」、\nポジティブ心理学の「自分の中にある強みを見つける視点」、\nそして脳科学の「言葉やイメージが心の反応を変える仕組み」\nをもとに作られています。`,
+    `けれど、いちばん大切なのは、\n知識ではありません。\n\nあなたが、\n自分の中にある小さな光に気づくこと。\n\n影を消すのではなく、\n影の奥にあった本音に気づくこと。\n\nこの旅で見つけた光を、\nどうか日常にも持って帰ってください。\n\nあなたの中には、\nもうちゃんと、進む力があります。`
+  ];
+  typewriterPages.forEach((text, i) => {
+    pushStep({ type:'typewriter', imageId:'', chapterId:cid, speaker:'', text, title:'', isFin: false, twPage: i });
+  });
+
   // fin scene（5-20 Fin画面 → BGM切り替えフラグ付き）
   if (data.finScene) {
     const img = resolveImg(data.finScene.image, cid);
@@ -1344,6 +1381,12 @@ function showStep() {
   const type = step.type;
 
   if (type === 'resultScreen') { showResultScreen(); return; }
+
+  if (type === 'typewriter') {
+    setImage('', step.title);
+    showTypewriter(step.text);
+    return;
+  }
 
   if (type === 'nameInput') {
     setImage(step.imageId, step.title);
@@ -1374,7 +1417,6 @@ function showStep() {
     $txt.style.display = '';
     $tapHint.style.display = '';
     $choiceFade.classList.remove('show');
-    if (stepIdx > 0) { $backBtn.classList.add('show'); } else { $backBtn.classList.remove('show'); }
     return;
   }
 
@@ -1388,6 +1430,26 @@ function showStep() {
 
   // narration / thought / dialogue
   setImage(step.imageId, step.title);
+
+  // FINシーンの最後のstep（次がない）→「最初から」ボタン表示
+  const isLastStep = stepIdx >= steps.length - 1;
+  if (isLastStep && step.chapterId === 'ending') {
+    showDialogue(type === 'narration' ? 'narr' : (type === 'thought' ? 'thgt' : ''),
+      type === 'thought' ? (step.speaker ? `◇ ${N(step.speaker)}` : '') : (N(step.speaker) || ''),
+      N(step.text));
+    // 「最初から」ボタンをtapHintの代わりに表示
+    $tapHint.style.display = 'none';
+    const existingBtn = document.getElementById('restart-fin-btn');
+    if (!existingBtn) {
+      const btn = document.createElement('button');
+      btn.id = 'restart-fin-btn';
+      btn.textContent = '最 初 か ら';
+      btn.style.cssText = 'display:block;margin:18px auto 0;padding:10px 28px;background:rgba(45,20,87,.7);border:1px solid rgba(201,168,76,.4);border-radius:20px;color:rgba(201,168,76,.9);font-size:12px;letter-spacing:.3em;font-family:"Noto Sans JP",sans-serif;cursor:pointer;';
+      btn.onclick = () => location.reload();
+      $txt.parentNode.appendChild(btn);
+    }
+    return;
+  }
 
   if (type === 'narration') {
     showDialogue('narr', '', N(step.text));
@@ -1408,9 +1470,7 @@ function showDialogue(cls, speaker, text) {
   $tapHint.style.display = '';
   // 戻るボタン：stepIdx > 0 のときのみ表示（選択肢・nameInput以外）
   if (stepIdx > 0 && !waitingChoice) {
-    $backBtn.classList.add('show');
   } else {
-    $backBtn.classList.remove('show');
   }
 }
 
@@ -1418,7 +1478,6 @@ function hideChoices() {
   $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
   $choices.classList.remove('show');
   $choiceFade.classList.remove('show');
-  $backBtn.classList.remove('show');
 }
 
 // ═══════════════════════════════════════════
@@ -1429,7 +1488,6 @@ function showChoiceStep(step) {
   $spk.textContent = '';
   $txt.style.display = 'none';
   $tapHint.style.display = 'none';
-  $backBtn.classList.remove('show'); // 選択肢中は戻るボタン非表示
 
   $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
   (step.choices || []).forEach(c => {
@@ -1570,8 +1628,10 @@ function collectBranchSteps(startId, sceneMap, cid) {
   const result = [];
   const visited = new Set();
   let curId = startId;
+  // 章境界：これらのIDに到達したら止める
+  const CHAPTER_STOPS = new Set(['chapter_2','chapter2','chapter_3','chapter3','chapter_4','chapter4','chapter_5','chapter5','ending']);
 
-  while (curId && !visited.has(curId)) {
+  while (curId && !visited.has(curId) && !CHAPTER_STOPS.has(curId)) {
     visited.add(curId);
     const sc = sceneMap[curId];
     if (!sc) break;
@@ -1618,17 +1678,51 @@ function handleTap() {
 }
 
 // ═══════════════════════════════════════════
-// BACK BUTTON（テキスト送り中のみ・選択肢前まで）
+// TYPEWRITER
 // ═══════════════════════════════════════════
-function goBack() {
-  if (waitingChoice || waitingName || waitingJoin) return;
-  if (stepIdx <= 0) return;
-  // 選択肢stepには戻らない（1つ余分に戻ってスキップ）
-  let target = stepIdx - 1;
-  while (target > 0 && steps[target] && steps[target].type === 'choice') {
-    target--;
+let twTimer = null;
+let twFullText = '';
+let twCurrentIdx = 0;
+let twDone = false;
+
+function showTypewriter(text) {
+  const wrap = document.getElementById('typewriter-wrap');
+  const el = document.getElementById('typewriter-text');
+  const hint = document.getElementById('typewriter-hint');
+
+  twFullText = text;
+  twCurrentIdx = 0;
+  twDone = false;
+  el.textContent = '';
+  hint.classList.remove('show');
+  wrap.classList.add('show');
+
+  if (twTimer) clearInterval(twTimer);
+  twTimer = setInterval(() => {
+    if (twCurrentIdx < twFullText.length) {
+      el.textContent += twFullText[twCurrentIdx];
+      twCurrentIdx++;
+    } else {
+      clearInterval(twTimer);
+      twDone = true;
+      setTimeout(() => hint.classList.add('show'), 400);
+    }
+  }, 38); // 1文字あたりの速度（ms）
+}
+
+function skipOrNextTypewriter() {
+  if (!twDone) {
+    // まだ途中→一気に全文表示
+    clearInterval(twTimer);
+    document.getElementById('typewriter-text').textContent = twFullText;
+    twDone = true;
+    setTimeout(() => document.getElementById('typewriter-hint').classList.add('show'), 200);
+    return;
   }
-  stepIdx = target;
+  // 完了後タップ→次のstepへ
+  document.getElementById('typewriter-wrap').classList.remove('show');
+  document.getElementById('typewriter-hint').classList.remove('show');
+  stepIdx++;
   saveProgress();
   showStep();
 }
@@ -1719,20 +1813,18 @@ function showResultScreen() {
     document.getElementById('game-screen').classList.remove('active');
     const $rs = document.getElementById('result-screen');
     $rs.classList.add('active');
-    playBGM('ending'); // 結果画面もendingBGM継続
+    playBGM('ending');
 
     const winner = getWinner();
     const typeInfo = SCORE_TYPES[winner];
     const endData = ENDING_DATA.resultScreen;
 
-    // Find matching type result
     const typeResult = endData.types.find(t => ENDING_SCORE_MAP[t.typeId] === winner);
 
     document.getElementById('rs-icon').textContent = typeInfo.icon;
     document.getElementById('rs-typename').textContent = typeResult ? typeResult.title : typeInfo.name;
     document.getElementById('rs-text').textContent = typeResult ? N(typeResult.text.join('\n')) : '';
 
-    // scores
     const $sc = document.getElementById('rs-scores');
     $sc.innerHTML = '';
     for (const [t,v] of Object.entries(scores)) {
@@ -1742,11 +1834,19 @@ function showResultScreen() {
       $sc.appendChild(p);
     }
 
-    // common result
     const cr = endData.commonResult;
     document.getElementById('rs-ctitle').textContent = cr.resultName || cr.title;
     document.getElementById('rs-ctext').textContent = N(cr.text.join('\n'));
   });
+}
+
+function proceedToFin() {
+  // resultScreenを閉じてgame-screenに戻り、FINシーンへ
+  const $rs = document.getElementById('result-screen');
+  $rs.classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  stepIdx++;
+  showStep();
 }
 
 // ═══════════════════════════════════════════
