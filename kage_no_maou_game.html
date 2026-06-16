@@ -483,6 +483,49 @@ html {
   display:flex; align-items:center; justify-content:center;
   transition:all .25s;
 }
+#pause-btn {
+  position:absolute; bottom:12px; right:46px;
+  width:26px; height:26px; border-radius:50%;
+  background:rgba(26,10,46,0.7);
+  border:1px solid rgba(201,168,76,0.3);
+  color:var(--gold-l); font-size:11px;
+  cursor:pointer; z-index:20;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .25s;
+}
+
+/* 一時停止確認ダイアログ */
+#pause-dialog {
+  display:none; position:fixed; inset:0; z-index:90;
+  background:rgba(10,3,22,0.88);
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:18px;
+}
+#pause-dialog.show { display:flex; }
+#pause-dialog .pd-title {
+  font-family:'Noto Serif JP',serif; font-size:15px;
+  color:var(--gold-l); letter-spacing:.12em;
+}
+#pause-dialog .pd-sub {
+  font-family:'Noto Sans JP',sans-serif; font-size:11px;
+  color:rgba(235,225,210,0.6); letter-spacing:.08em; text-align:center;
+  line-height:1.8;
+}
+#pause-dialog .pd-btn {
+  padding:10px 32px; border-radius:20px;
+  font-family:'Noto Sans JP',sans-serif; font-size:12px;
+  letter-spacing:.2em; cursor:pointer; transition:all .22s;
+}
+#pause-dialog .pd-btn-ok {
+  background:rgba(45,20,87,.8);
+  border:1px solid rgba(201,168,76,.5);
+  color:var(--gold-l);
+}
+#pause-dialog .pd-btn-cancel {
+  background:transparent;
+  border:1px solid rgba(235,225,210,0.2);
+  color:rgba(235,225,210,0.5);
+}
 
 /* transition */
 #ov {
@@ -523,6 +566,15 @@ html {
       <div class="sdot deep"  id="d-deep"></div>
     </div>
     <button id="mute-btn" onclick="toggleMute()" title="音楽ON/OFF">🔊</button>
+    <button id="pause-btn" onclick="showPauseDialog()" title="一時保存して終了">⏸</button>
+  </div>
+
+  <!-- 一時停止確認ダイアログ -->
+  <div id="pause-dialog">
+    <div class="pd-title">ここで一時停止しますか？</div>
+    <div class="pd-sub">セーブして終了します。<br>次回「つづきから」を押すと<br>このあたりから再開できます。</div>
+    <button class="pd-btn pd-btn-ok" onclick="pauseAndExit()">保 存 し て 終 了</button>
+    <button class="pd-btn pd-btn-cancel" onclick="hidePauseDialog()">つ づ け る</button>
   </div>
   <div id="txt-area" onclick="handleTap()">
     <div id="spk-name"></div>
@@ -908,25 +960,7 @@ function continueGame() {
   document.getElementById('game-screen').classList.add('active');
 
   buildAllSteps();
-
-  // 動的injectで増減するstepsに対して安全にジャンプ
-  // 保存された章IDの先頭stepへジャンプし、そこからstepIdxを調整
-  const savedChapterId = saved.currentChapterId;
-  const savedStepIdx = saved.stepIdx || 0;
-
-  if (savedChapterId) {
-    // その章の最初のstepインデックスを探す
-    const chapterStart = steps.findIndex(s => s.chapterId === savedChapterId);
-    if (chapterStart >= 0) {
-      // 章内でのオフセット（動的inject分はリセットして章先頭から）
-      // 章先頭から始まるのが安全
-      stepIdx = chapterStart;
-    } else {
-      stepIdx = Math.min(savedStepIdx, steps.length - 1);
-    }
-  } else {
-    stepIdx = Math.min(savedStepIdx, steps.length - 1);
-  }
+  stepIdx = Math.min(saved.stepIdx || 0, steps.length - 1);
 
   updateScoreDots();
   const step = steps[stepIdx];
@@ -1755,6 +1789,31 @@ function skipOrNextTypewriter() {
   stepIdx++;
   saveProgress();
   showStep();
+}
+
+// ═══════════════════════════════════════════
+// PAUSE & EXIT
+// ═══════════════════════════════════════════
+function showPauseDialog() {
+  document.getElementById('pause-dialog').classList.add('show');
+}
+
+function hidePauseDialog() {
+  document.getElementById('pause-dialog').classList.remove('show');
+}
+
+function pauseAndExit() {
+  // その場のstepIdxをそのまま保存
+  saveProgress();
+
+  // BGM停止してタイトルへ
+  if (bgmAudio) { bgmAudio.pause(); bgmAudio = null; currentBGMKey = null; }
+  hidePauseDialog();
+  fadeTransition(() => {
+    document.getElementById('game-screen').classList.remove('active');
+    document.getElementById('title-screen').classList.add('active');
+    checkContinue();
+  });
 }
 
 // ═══════════════════════════════════════════
