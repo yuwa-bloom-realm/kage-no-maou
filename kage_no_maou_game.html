@@ -296,9 +296,44 @@ html {
   gap:7px; padding:10px 14px 14px;
   overflow-y:auto; scrollbar-width:none;
   flex:1; min-height:0;
+  position:relative;
 }
 #choice-panel::-webkit-scrollbar { display:none; }
 #choice-panel.show { display:flex; }
+
+/* 選択肢「まだ下にあるよ」グラデーション */
+#choice-fade {
+  display:none;
+  position:absolute; bottom:0; left:0; right:0; height:52px;
+  background:linear-gradient(to bottom, transparent, rgba(18,5,34,.97));
+  pointer-events:none; z-index:5;
+  align-items:flex-end; justify-content:center;
+  padding-bottom:6px;
+}
+#choice-fade.show { display:flex; }
+#choice-fade-arrow {
+  font-size:13px; color:var(--gold); opacity:.7;
+  animation:blink 1.8s ease-in-out infinite;
+}
+
+/* 戻るボタン */
+#back-btn {
+  display:none;
+  position:absolute; bottom:12px; left:12px;
+  width:30px; height:30px; border-radius:50%;
+  background:rgba(26,10,46,0.7);
+  border:1px solid rgba(201,168,76,0.25);
+  color:rgba(201,168,76,0.55); font-size:13px;
+  cursor:pointer; z-index:20;
+  align-items:center; justify-content:center;
+  transition:all .25s;
+}
+#back-btn.show { display:flex; }
+#back-btn:hover, #back-btn:active {
+  border-color:rgba(201,168,76,0.6);
+  color:var(--gold-l);
+  background:rgba(45,20,87,0.85);
+}
 .choice-lbl {
   font-size:10px; letter-spacing:.25em; color:var(--gold);
   font-family:'Noto Sans JP',sans-serif; font-weight:300;
@@ -478,6 +513,8 @@ html {
     <div id="choice-panel">
       <div class="choice-lbl">— どう声をかける？ —</div>
     </div>
+    <div id="choice-fade"><span id="choice-fade-arrow">▼</span></div>
+    <button id="back-btn" onclick="goBack()" title="ひとつ戻る">◁</button>
   </div>
 </div>
 
@@ -758,6 +795,8 @@ const $txt     = document.getElementById('dlg-text');
 const $tapHint = document.getElementById('tap-hint');
 const $choices = document.getElementById('choice-panel');
 const $ov      = document.getElementById('ov');
+const $backBtn = document.getElementById('back-btn');
+const $choiceFade = document.getElementById('choice-fade');
 
 // ═══════════════════════════════════════════
 // NAME REPLACE
@@ -1080,33 +1119,34 @@ function buildChapter1() {
   const sceneMap = {};
   scenes.forEach(s => sceneMap[s.id] = s);
 
-  const visited = new Set();
-  let curId = scenes[0].id;
+  // 直線シーンのみ順番に処理（分岐先はinlineNextIdで動的展開）
+  // 直線シーン：1-1〜1-5、1-7-1〜1-7-3、1-8、1-9
+  // 分岐シーン：1-5-x, 1-6-x, 1-7-4-x はchoice選択後に動的挿入
+  const mainFlow = ['1-1','1-2','1-3','1-4','1-5','1-7-1','1-7-2','1-7-3','1-8','1-9'];
 
-  while (curId && !visited.has(curId)) {
-    visited.add(curId);
-    const sc = sceneMap[curId];
-    if (!sc) break;
+  mainFlow.forEach(sid => {
+    const sc = sceneMap[sid];
+    if (!sc) return;
 
-    const img = resolveImg(sc.image || sc.imageId, cid);
+    const img = resolveImg(sc.image || '', cid);
     const title = sc.title || '';
 
-    if (sc.type === 'story' || sc.type === 'narration_block') {
+    // linesを出力
+    if (sc.lines && sc.lines.length) {
       pushLines(sc.lines, img, cid, title, sc.id);
-    } else if (sc.type === 'choice') {
-      pushLines(sc.lines, img, cid, title, sc.id);
-      const opts = (sc.choice?.options || []).map(o => ({
-        label: o.label,
-        score: o.score || {},
-        afterLines: o.after_lines || [],
-        afterImg: resolveImg(o.image, cid) || img,
-        inlineNextId: null
-      }));
-      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice?.question||'', title, choices:opts, sceneId: sc.id });
     }
 
-    curId = sc.next || null;
-  }
+    // choicesがある場合は選択肢ステップを追加（inlineNextId方式）
+    if (sc.choices && sc.choices.length) {
+      const opts = sc.choices.map(c => ({
+        label: c.text,
+        score: c.score || {},
+        inlineNextId: c.next,
+        afterLines: []
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:'', title, choices:opts, ch1SceneMap:sceneMap });
+    }
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -1333,6 +1373,8 @@ function showStep() {
       + (chSub ? `<br><span style="display:block;width:44px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:12px auto 10px;"></span><span style="font-size:14px;letter-spacing:.15em;">${chSub}</span>` : '');
     $txt.style.display = '';
     $tapHint.style.display = '';
+    $choiceFade.classList.remove('show');
+    if (stepIdx > 0) { $backBtn.classList.add('show'); } else { $backBtn.classList.remove('show'); }
     return;
   }
 
@@ -1364,11 +1406,19 @@ function showDialogue(cls, speaker, text) {
   $txt.textContent = text;
   $txt.style.display = '';
   $tapHint.style.display = '';
+  // 戻るボタン：stepIdx > 0 のときのみ表示（選択肢・nameInput以外）
+  if (stepIdx > 0 && !waitingChoice) {
+    $backBtn.classList.add('show');
+  } else {
+    $backBtn.classList.remove('show');
+  }
 }
 
 function hideChoices() {
   $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
   $choices.classList.remove('show');
+  $choiceFade.classList.remove('show');
+  $backBtn.classList.remove('show');
 }
 
 // ═══════════════════════════════════════════
@@ -1379,6 +1429,7 @@ function showChoiceStep(step) {
   $spk.textContent = '';
   $txt.style.display = 'none';
   $tapHint.style.display = 'none';
+  $backBtn.classList.remove('show'); // 選択肢中は戻るボタン非表示
 
   $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
   (step.choices || []).forEach(c => {
@@ -1389,6 +1440,21 @@ function showChoiceStep(step) {
     $choices.appendChild(btn);
   });
   $choices.classList.add('show');
+
+  // スクロールで▼インジケーター制御
+  setTimeout(() => updateChoiceFade(), 80);
+  $choices.onscroll = () => updateChoiceFade();
+}
+
+function updateChoiceFade() {
+  const el = $choices;
+  const canScroll = el.scrollHeight > el.clientHeight + 4;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+  if (canScroll && !atBottom) {
+    $choiceFade.classList.add('show');
+  } else {
+    $choiceFade.classList.remove('show');
+  }
 }
 
 function selectChoice(step, choice) {
@@ -1442,7 +1508,7 @@ function selectChoice(step, choice) {
     branchSteps.forEach(s => inject.push(s));
   // Chapter 4/5 style: inlineNextId (jump to scene and continue)
   } else if (choice.inlineNextId) {
-    const sceneMap = step.ch4SceneMap || step.ch5SceneMap;
+    const sceneMap = step.ch1SceneMap || step.ch4SceneMap || step.ch5SceneMap;
     if (sceneMap) {
       const branchSteps = collectBranchSteps(choice.inlineNextId, sceneMap, cid);
       branchSteps.forEach(s => inject.push(s));
@@ -1526,13 +1592,13 @@ function collectBranchSteps(startId, sceneMap, cid) {
       const choiceData = sc.choices || sc.choice?.options;
       const prompt = sc.choice?.question || sc.choice?.prompt || '';
       const opts = (choiceData || []).map(o => ({
-        label: o.label,
+        label: o.label || o.text,   // ch4/5: label, ch1: text
         score: o.score || {},
         inlineNextId: o.next,
         afterLines: o.after_lines || []
       }));
       result.push({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:prompt, title, choices:opts,
-        ch4SceneMap: sceneMap, ch5SceneMap: sceneMap });
+        ch1SceneMap: sceneMap, ch4SceneMap: sceneMap, ch5SceneMap: sceneMap });
       break;
     }
 
@@ -1547,6 +1613,22 @@ function collectBranchSteps(startId, sceneMap, cid) {
 function handleTap() {
   if (waitingChoice || waitingName || waitingJoin) return;
   stepIdx++;
+  saveProgress();
+  showStep();
+}
+
+// ═══════════════════════════════════════════
+// BACK BUTTON（テキスト送り中のみ・選択肢前まで）
+// ═══════════════════════════════════════════
+function goBack() {
+  if (waitingChoice || waitingName || waitingJoin) return;
+  if (stepIdx <= 0) return;
+  // 選択肢stepには戻らない（1つ余分に戻ってスキップ）
+  let target = stepIdx - 1;
+  while (target > 0 && steps[target] && steps[target].type === 'choice') {
+    target--;
+  }
+  stepIdx = target;
   saveProgress();
   showStep();
 }
@@ -1836,53 +1918,7 @@ const PROLOGUE_DATA = {
 };
 
 // ── CHAPTER 1 (simplified inline) ──
-const CH1_DATA = {scenes:[
-  {id:"1-1",type:"story",image:"1-1.png",title:"森の戦場",lines:[
-    {type:"narration",text:"森の奥へ踏み込むと、戦いの音がすぐそこまで迫っていた。"},
-    {type:"narration",text:"黒いもやが木々に絡みつき、地面を這う。その中心で、一人の剣士が影と向き合っていた。"},
-    {type:"dialogue",speaker:"剣士",text:"……来るな。ここは俺が片付ける。"},
-    {type:"dialogue",speaker:"{{name}}（心の声）",text:"一人で全部背負おうとしている。あの人の光が、消えそうだ。"},
-    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、あの人を助けたい？"},
-    {type:"dialogue",speaker:"{{name}}",text:"……うん。"}
-  ],next:"1-choice"},
-  {id:"1-choice",type:"choice",image:"1-1.png",title:"どうする？",lines:[],
-    choice:{question:"あなたはどうする？",options:[
-      {label:"すぐ前に出て、剣士を助ける",score:{light:1},image:"1-2.png",after_lines:[
-        {type:"narration",text:"{{name}}は迷わず前へ出た。"},
-        {type:"dialogue",speaker:"{{name}}",text:"一人じゃなくていい。私もいる。"},
-        {type:"dialogue",speaker:"剣士",text:"……お前は？"}
-      ]},
-      {label:"影の動きをよく見てから動く",score:{moon:1},image:"1-2.png",after_lines:[
-        {type:"narration",text:"{{name}}は一歩引いて、影の動きを観察した。"},
-        {type:"dialogue",speaker:"{{name}}（心の声）",text:"焦らない。影の弱点を見つけてから動こう。"},
-        {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、何か見えた？"}
-      ]},
-      {label:"剣士の心の傷が気になる",score:{fire:1},image:"1-2.png",after_lines:[
-        {type:"narration",text:"{{name}}は剣士の背中を見つめた。"},
-        {type:"dialogue",speaker:"{{name}}（心の声）",text:"戦っているのに、どこかとても苦しそう。"},
-        {type:"dialogue",speaker:"{{name}}",text:"あなた……ずっとひとりで戦ってきたの？"}
-      ]},
-      {label:"影の奥にある悲しみを感じ取る",score:{deep:1},image:"1-2.png",after_lines:[
-        {type:"narration",text:"{{name}}は影の奥に意識を向けた。"},
-        {type:"dialogue",speaker:"{{name}}（心の声）",text:"この影は、ただ悪いものじゃない。何か、深い悲しみがある。"},
-        {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、影の奥に何かいる？"}
-      ]}
-    ]},next:"1-2"},
-  {id:"1-2",type:"story",image:"1-3.png",title:"剣士との出会い",lines:[
-    {type:"narration",text:"{{name}}の光が、影の黒いもやを少しずつほどいていく。"},
-    {type:"dialogue",speaker:"剣士",text:"……なぜ助けた。俺は一人でいい。"},
-    {type:"dialogue",speaker:"{{name}}",text:"一人でいいなんて、思ってないでしょ。"},
-    {type:"dialogue",speaker:"剣士",text:"……"},
-    {type:"dialogue",speaker:"じょりぃ",text:"この人、強がりさんだね。"},
-    {type:"dialogue",speaker:"剣士",text:"犬が喋った。"},
-    {type:"dialogue",speaker:"じょりぃ",text:"犬じゃないもん！妖精！！"},
-    {type:"narration",text:"影が浄化されると、剣士はようやく{{name}}を見た。"},
-    {type:"dialogue",speaker:"剣士",text:"……イブキだ。名前だけ教えてやる。"},
-    {type:"dialogue",speaker:"じょりぃ",text:"イブキ！いい名前だね。この子は{{name}}。一緒に旅してかない？"},
-    {type:"dialogue",speaker:"イブキ",text:"……好きにしろ。"},
-    {type:"system",text:"イブキ加入"}
-  ],next:null}
-]};
+const CH1_DATA = {"chapterId":"chapter_1","chapterTitle":"第1章：ひとりで戦う剣士と、光の盾","theme":"一人で戦わなくてもいい","nameVariable":"{{name}}","scoreTypes":{"light":"光の先導者","moon":"静寂の観察者","fire":"炎の共感者","deep":"深淵の癒し手"},"rules":{"playerNameDisplay":"{{name}}","innerVoiceDisplay":"{{name}}（心の声）","beforeIntroduction":"剣士","afterIntroduction":"イブキ","noTextInImages":true},"scenes":[{"id":"1-1","title":"森の入口","image":"1-1","lines":[{"type":"narration","text":"森の入口に立ったとき、{{name}}は、思わず小さく息をのんだ。"},{"type":"narration","text":"目の前に広がる道は、細く、静かで、どこまでも深い緑の奥へ続いていた。"},{"speaker":"{{name}}（心の声）","text":"ここから、はじまるんだ……"},{"speaker":"{{name}}（心の声）","text":"おじいちゃんの言葉を胸に、私は旅に出た。"},{"speaker":"{{name}}（心の声）","text":"“お前ならいける”って、あの時たしかに言ってくれた。"},{"speaker":"{{name}}（心の声）","text":"でも……本当に、私にできるのかな。"},{"type":"narration","text":"祖父は、伝説のヒーラーだった。誰かの痛みにそっと手を添え、光で包み、癒やし、導く人だった。"},{"speaker":"祖父（回想）","text":"お前ならいける。"},{"type":"narration","text":"その言葉が、今も胸の奥で灯っている。"},{"speaker":"{{name}}（心の声）","text":"私は、まだ何もできていない気がする。"},{"speaker":"{{name}}（心の声）","text":"誰かを癒やすどころか、自分のことさえ、まだ……。"},{"speaker":"じょりぃ","text":"{{name}}ー、顔がまじめまじめになってるよー？"},{"speaker":"{{name}}","text":"えっ、そんな顔してた？"},{"speaker":"じょりぃ","text":"してたしてた！“世界の運命を全部ひとりで背負います”みたいな顔！"},{"speaker":"{{name}}","text":"そんなつもりは……。"},{"speaker":"じょりぃ","text":"だいじょーぶ。最初から完璧なヒーラーなんて、森にも塔にもいないって。"},{"speaker":"{{name}}（心の声）","text":"じょりぃがいると、不思議と少しだけ呼吸がしやすくなる。"},{"speaker":"{{name}}（心の声）","text":"まだ怖い。でも……ひとりじゃない。"},{"speaker":"{{name}}","text":"……うん。行こう、じょりぃ。"},{"speaker":"じょりぃ","text":"おー！ 光を探す旅、しゅっぱーつ！"}],"next":"1-2"},{"id":"1-2","title":"影の気配","image":"1-2","lines":[{"type":"narration","text":"森の中へ進むほどに、空気は少しずつ冷たくなっていった。"},{"type":"narration","text":"鳥の声が遠のく。葉の揺れる音も、どこか緊張を含んで聞こえる。"},{"speaker":"{{name}}（心の声）","text":"……何だろう。この感じ。"},{"speaker":"{{name}}（心の声）","text":"ただ暗いだけじゃない。胸の奥に、重たく沈んでくるみたいな……。"},{"speaker":"じょりぃ","text":"{{name}}、止まって。"},{"type":"narration","text":"{{name}}も足を止める。森の奥、木々のすき間から、黒い霧のようなものがゆらゆらと漂ってきていた。"},{"speaker":"{{name}}","text":"これ……ただの魔物の気配じゃない？"},{"speaker":"じょりぃ","text":"うん。たぶん、ただの影じゃない。"},{"speaker":"{{name}}","text":"ただの影じゃない……？"},{"speaker":"じょりぃ","text":"誰かの心に、からまってる影だよ。"},{"speaker":"じょりぃ","text":"つらかった気持ちとか、飲み込んだ言葉とか。そういうのが、黒く固まってる感じ。"},{"speaker":"{{name}}（心の声）","text":"心に、からまってる影……。"},{"speaker":"{{name}}（心の声）","text":"影って、外から来るだけじゃないんだ。自分の中の痛みが、形になることもあるんだ……。"},{"type":"narration","text":"その瞬間、遠くから金属のぶつかる鋭い音が響いた。"},{"speaker":"じょりぃ","text":"……誰かいる！"},{"speaker":"{{name}}","text":"行こう！"}],"next":"1-3"},{"id":"1-3","title":"一人で戦う剣士","image":"1-3","lines":[{"type":"narration","text":"木々を抜けた先に、小さく開けた場所があった。"},{"type":"narration","text":"そこにいたのは――ひとりの剣士だった。"},{"type":"narration","text":"黒髪。鋭い目。しなやかで無駄のない動き。振るわれる剣は速く、一撃ごとに空気を切り裂いていく。"},{"type":"narration","text":"その前で、黒い影が大きくうねっていた。黒い龍のような姿をした、煙と闇でできた影だった。"},{"speaker":"{{name}}（心の声）","text":"強い……。すごい剣さばき……。"},{"type":"narration","text":"剣士は影の攻撃をかわし、一歩踏み込み、斬りつける。けれど、影はすぐに形を戻してしまう。"},{"speaker":"{{name}}（心の声）","text":"あの人、ひとりで戦ってる……。"},{"speaker":"{{name}}（心の声）","text":"すごく強い。なのに……どうしてだろう。少しも、楽そうに見えない。"},{"speaker":"じょりぃ","text":"あの人……ずっとひとりでやってきた顔してる。"},{"speaker":"{{name}}","text":"ひとりでやってきた顔……？"},{"speaker":"じょりぃ","text":"うん。“助けて”より先に、“近づくな”が出る人の顔。"},{"speaker":"{{name}}（心の声）","text":"近づくな、か……。でも、本当にそう思ってるのかな。"},{"speaker":"{{name}}（心の声）","text":"それとも……誰かを巻き込みたくないだけ？"}],"next":"1-4"},{"id":"1-4","title":"黒炎を吐く影","image":"1-4","lines":[{"type":"narration","text":"影は、大きく口を開くように形をゆがめた。"},{"type":"narration","text":"その奥から、黒紫の炎が噴き上がる。"},{"type":"narration","text":"剣士は剣を構え、正面から受け止めた。炎が地面を焼き、木々を揺らす。"},{"type":"narration","text":"その中で、{{name}}は聞いた。炎の音にまじって、誰かの囁く声を。"},{"speaker":"影の声","text":"ひとりでやれ。"},{"speaker":"影の声","text":"誰にも頼るな。"},{"speaker":"影の声","text":"弱さを見せるな。"},{"speaker":"影の声","text":"守る者は、助けを求めてはいけない。"},{"type":"narration","text":"剣士の表情が、わずかに歪んだ。"},{"speaker":"{{name}}（心の声）","text":"あの声……ただの攻撃じゃない。"},{"speaker":"{{name}}（心の声）","text":"心に刺さる言葉だ。"},{"speaker":"影の声","text":"頼れば、足手まといが増えるだけだ。"},{"speaker":"影の声","text":"守れなかったのは、お前が弱かったからだ。"},{"speaker":"剣士","text":"……黙れ。"},{"speaker":"影の声","text":"ひとりでいろ。そうすれば、失わずに済む。"},{"speaker":"剣士","text":"黙れ！！"},{"speaker":"{{name}}（心の声）","text":"このままじゃ……。"},{"speaker":"{{name}}（心の声）","text":"ひとりで受け止め続けたら、あの人が壊れてしまう。"}],"next":"1-5"},{"id":"1-5","title":"主人公の選択","image":null,"lines":[{"type":"narration","text":"{{name}}の足が、わずかにすくむ。"},{"type":"narration","text":"助けたい。でも、怖い。自分が前に出たところで、本当に何かできるのだろうか。"},{"speaker":"{{name}}（心の声）","text":"私なんかが行っても……足手まといになるかもしれない。"},{"speaker":"{{name}}（心の声）","text":"でも、見てるだけなんて……。"},{"speaker":"じょりぃ","text":"{{name}}。どうする？"}],"choices":[{"text":"すぐ助けに行く","score":{"light":1},"next":"1-5-1"},{"text":"まず影の動きを見る","score":{"moon":1},"next":"1-5-2"},{"text":"剣士の痛みに意識を向ける","score":{"fire":1},"next":"1-5-3"},{"text":"影が生まれた理由を感じる","score":{"deep":1},"next":"1-5-4"}]},{"id":"1-5-1","title":"すぐ助けに行く","image":"1-5-1","lines":[{"type":"narration","text":"{{name}}は、考えるより先に駆け出していた。"},{"speaker":"{{name}}（心の声）","text":"怖い。でも、あの人をこのままひとりにしておけない！"},{"speaker":"じょりぃ","text":"{{name}}、待って――って、もう行ってるし！"}],"next":"1-6-1"},{"id":"1-5-2","title":"まず影の動きを見る","image":"1-5-2","lines":[{"type":"narration","text":"{{name}}は、すぐには飛び出さなかった。"},{"type":"narration","text":"影のうねり。黒炎の吐き出される間隔。剣士の呼吸の乱れ。"},{"speaker":"{{name}}（心の声）","text":"ただ飛び込むだけじゃだめ。今、届く瞬間を見極めなきゃ。"}],"next":"1-6-2"},{"id":"1-5-3","title":"剣士の痛みに意識を向ける","image":"1-5-3","lines":[{"type":"narration","text":"{{name}}は、剣士の表情から目を離せなかった。"},{"speaker":"{{name}}（心の声）","text":"あの人……怒ってるんじゃない。"},{"speaker":"{{name}}（心の声）","text":"泣けないくらい、こらえてるんだ。"}],"next":"1-6-3"},{"id":"1-5-4","title":"影が生まれた理由を感じる","image":"1-5-4","lines":[{"type":"narration","text":"{{name}}は、影の動きの奥に、小さな震えのようなものを感じていた。"},{"speaker":"{{name}}（心の声）","text":"これは……ただの敵じゃない。"},{"speaker":"{{name}}（心の声）","text":"助けてって言えなかった気持ちが、黒くなってるみたい……。"}],"next":"1-6-4"},{"id":"1-6-1","title":"じょりぃが隣に並ぶ","image":"1-6-1","lines":[{"type":"narration","text":"慌てたように言いながらも、じょりぃはすぐに{{name}}の隣へ飛んできた。"},{"speaker":"じょりぃ","text":"よし、行くなら一緒！ひとりでかっこつけるのは禁止ね！"},{"speaker":"{{name}}","text":"うん！"}],"next":"1-7-1"},{"id":"1-6-2","title":"じょりぃが隣に並ぶ","image":"1-6-2","lines":[{"speaker":"じょりぃ","text":"うん。ちゃんと見てるね、{{name}}。助けるって、飛び出すことだけじゃないもんね。"},{"speaker":"じょりぃ","text":"次の黒炎が来る瞬間――そこだよ。その時なら、{{name}}の光が届く。"},{"speaker":"{{name}}","text":"……うん。今だ。"}],"next":"1-7-1"},{"id":"1-6-3","title":"じょりぃが隣に並ぶ","image":"1-6-3","lines":[{"speaker":"じょりぃ","text":"{{name}}には、あの人の痛みが見えたんだね。"},{"speaker":"{{name}}","text":"放っておけない……。"},{"speaker":"じょりぃ","text":"うん。その気持ちがあるなら、もう届くよ。{{name}}の光は、戦うためだけじゃない。守るためにあるんだから。"}],"next":"1-7-1"},{"id":"1-6-4","title":"じょりぃが隣に並ぶ","image":"1-6-4","lines":[{"speaker":"じょりぃ","text":"うん。影は、消せば終わりじゃないのかもね。"},{"speaker":"{{name}}","text":"でも、このままじゃ、あの人が飲み込まれる。"},{"speaker":"じょりぃ","text":"うん。まずは守ろう。影の声を聞くのは、そのあとでも遅くない。"}],"next":"1-7-1"},{"id":"1-7-1","title":"光の盾","image":"1-7-1","lines":[{"type":"narration","text":"影が再び、大きく口を開いた。"},{"type":"narration","text":"黒紫の炎が、剣士めがけて吐き出される。"},{"type":"narration","text":"剣士は剣を構えた。ひとりで受け止めるつもりだ。"},{"speaker":"{{name}}（心の声）","text":"だめ……！"},{"speaker":"{{name}}（心の声）","text":"あの人は強い。だけど、あの影は剣だけで斬れるものじゃない。"},{"speaker":"{{name}}（心の声）","text":"心に刺さる言葉ごと、ひとりで受け止め続けたら……壊れてしまう。"},{"type":"narration","text":"その瞬間――{{name}}は前に飛び出した。"},{"speaker":"{{name}}","text":"ひとりで、受け止めなくていい！！"},{"type":"narration","text":"{{name}}の胸の奥から、ターコイズブルーの光があふれ出す。"},{"type":"narration","text":"光は両手と杖に集まり、やわらかく、けれど強く広がっていった。"},{"type":"narration","text":"次の瞬間、剣士の前に、半透明の光の盾が現れる。"},{"type":"narration","text":"黒炎が盾にぶつかり、まばゆい光が森いっぱいに散った。"},{"speaker":"剣士","text":"なっ……！？"},{"speaker":"{{name}}（心の声）","text":"重い……！"},{"speaker":"{{name}}（心の声）","text":"でも、負けない。この人に、これ以上ひとりで受け止めさせない。"},{"speaker":"剣士","text":"誰が助けろと言った！"},{"speaker":"じょりぃ","text":"言ってないけど、必要そうだったから来ましたー！"},{"speaker":"剣士","text":"勝手なことをするな！"},{"speaker":"じょりぃ","text":"勝手にひとりで倒れようとしてる人に言われたくないでーす！"},{"type":"narration","text":"黒炎の奥で、影がまた低く囁いた。"},{"speaker":"影の声","text":"頼るな。"},{"speaker":"影の声","text":"守る者は、守られるな。"},{"speaker":"影の声","text":"ひとりで立て。ひとりで戦え。"},{"type":"narration","text":"剣士の肩が、わずかに震えた。"},{"speaker":"{{name}}","text":"じょりぃ、盾は私が支えます！"},{"speaker":"じょりぃ","text":"了解！ 剣士さんには、わたしがガードかける！"},{"type":"narration","text":"じょりぃは小さな杖をくるりと回した。"},{"type":"narration","text":"淡い金色の光が、剣士の肩から腕へ、そして剣先へと流れていく。"},{"speaker":"剣士","text":"これは……？"},{"speaker":"じょりぃ","text":"妖精式・ちょっとだけ守るやつ！"},{"speaker":"剣士","text":"名前が軽いな。"},{"speaker":"じょりぃ","text":"効果はちゃんとしてますー！"},{"type":"narration","text":"金色のガードの光が、黒炎の熱と影の囁きを少しだけ遠ざける。"},{"type":"narration","text":"剣士は一瞬だけ目を見開いた。"},{"type":"narration","text":"誰かに守られながら戦うことに、慣れていない。"},{"type":"narration","text":"けれど、その光は不思議と重くなかった。"},{"speaker":"{{name}}","text":"今なら、動けます！"},{"speaker":"じょりぃ","text":"ひとりで全部やるの禁止！ 今だけでいいから、受け取って！"}],"next":"1-7-2"},{"id":"1-7-2","title":"共闘","image":"1-7-2","lines":[{"type":"narration","text":"光の盾が黒炎をはじく。"},{"type":"narration","text":"その間に、じょりぃのガードの光が剣士を包んでいた。"},{"type":"narration","text":"淡い金色の光が、黒炎の熱と影の囁きを少しだけ遠ざける。"},{"type":"narration","text":"剣士は一瞬だけ迷った。"},{"type":"narration","text":"誰かに守られることに、慣れていない。"},{"speaker":"{{name}}（心の声）","text":"この人は、たぶんずっと……守る側でいることしか、許してこなかったんだ。"},{"speaker":"{{name}}（心の声）","text":"でも、今は違う。守られながらでも、進んでいい。"},{"type":"narration","text":"影がうねり、次の攻撃へ移ろうとする。"},{"speaker":"{{name}}","text":"今です！"},{"speaker":"剣士","text":"……一度だけだ。"},{"speaker":"じょりぃ","text":"はいはい、“一度だけ”って言う人、だいたい二度目もあるんだよねー。"},{"speaker":"剣士","text":"うるさい妖精だな！"},{"type":"narration","text":"けれど、その声には、さっきまでの張りつめた孤独だけではない、ほんの少しだけ人のぬくもりが混じっていた。"},{"type":"narration","text":"剣士は地面を蹴った。"},{"type":"narration","text":"{{name}}の光の盾が黒炎を防ぎ、じょりぃのガードが影の囁きを弱める。"},{"type":"narration","text":"ひとりでは届かなかった場所へ、今なら踏み込める。"},{"speaker":"じょりぃ","text":"左！ 次、右からくるよ！"},{"speaker":"{{name}}","text":"剣士さん、今なら――！"},{"speaker":"剣士","text":"言われなくてもわかる！"},{"type":"narration","text":"剣士の剣が、光をまとって振り下ろされた。"},{"type":"narration","text":"ザンッ――！"},{"type":"narration","text":"影が大きく裂ける。"},{"type":"narration","text":"けれど、その裂け目の奥に見えたものに、{{name}}は息をのんだ。"}],"next":"1-7-3"},{"id":"1-7-3","title":"影の正体","image":"1-7-3","lines":[{"type":"narration","text":"影の裂け目の奥。"},{"type":"narration","text":"そこに見えたのは、ただの闇ではなかった。"},{"type":"narration","text":"雨に濡れた、小さな記憶の景色だった。"},{"type":"narration","text":"幼い剣士が、誰かを守ろうとして手を伸ばしている。"},{"speaker":"幼い剣士","text":"待って……！"},{"type":"narration","text":"けれど、その手は届かなかった。"},{"type":"narration","text":"黒い霧の向こうへ、守りたかった人の背中が沈んでいく。"},{"type":"narration","text":"幼い剣士は、泣きそうな顔で唇を噛みしめた。"},{"speaker":"小さな声","text":"もっと強ければ、守れたのに。"},{"speaker":"小さな声","text":"泣くな。"},{"speaker":"小さな声","text":"弱いから守れなかったんだ。"},{"speaker":"小さな声","text":"誰かに頼るな。"},{"speaker":"小さな声","text":"もっと強くなれ。"},{"speaker":"小さな声","text":"ひとりで全部、守れるくらいに。"},{"type":"narration","text":"その声が重なり、黒い龍のような影になっていく。"},{"type":"narration","text":"影の中心で、膝を抱えた幼い剣士の姿が震えていた。"},{"speaker":"{{name}}（心の声）","text":"この影は……ただ剣士さんを責めるために生まれたんじゃない。"},{"speaker":"{{name}}（心の声）","text":"もう二度と失わないように、あの人を守ろうとしていたんだ。"},{"speaker":"{{name}}（心の声）","text":"でも、その守り方が、あの人をずっとひとりにしていた。"},{"speaker":"剣士","text":"……やめろ。"},{"type":"narration","text":"剣士の声は、さっきまでよりも小さかった。怒りではなく、痛みに近い声だった。"},{"speaker":"影の声","text":"ひとりでいろ。"},{"speaker":"影の声","text":"誰も巻き込むな。"},{"speaker":"影の声","text":"そうすれば、もう失わなくて済む。"},{"type":"narration","text":"{{name}}は、剣士を見た。"},{"type":"narration","text":"その横顔は苦しそうで、でも、怒りだけではない深い痛みを抱えていた。"}],"choices":[{"text":"「一緒に戦います」と伝える","score":{"light":1},"next":"1-7-4-light"},{"text":"「今は無理に話さなくていい」と伝える","score":{"moon":1},"next":"1-7-4-moon"},{"text":"「守りたかったんですね」と伝える","score":{"fire":1},"next":"1-7-4-fire"},{"text":"「その影も、あなたを守ろうとしていたのかもしれない」と伝える","score":{"deep":1},"next":"1-7-4-deep"}]},{"id":"1-7-4-light","title":"剣士の本音","image":"1-7-4","lines":[{"type":"narration","text":"{{name}}は、剣士の隣へ一歩進み出た。"},{"speaker":"{{name}}","text":"一緒に戦います。"},{"speaker":"{{name}}","text":"ひとりじゃありません。今は、私たちがいます。"},{"speaker":"{{name}}","text":"過去のあの日に戻ることはできないかもしれません。"},{"speaker":"{{name}}","text":"でも、これから先まで、ずっとひとりで背負わなくていいんです。"},{"type":"narration","text":"その言葉に、影がわずかに揺らぐ。"},{"type":"narration","text":"剣士はすぐには何も言えなかった。"},{"speaker":"剣士","text":"……勝手なやつだな。"},{"speaker":"じょりぃ","text":"おたがいさまー！"},{"type":"narration","text":"影は薄れていき、剣士は剣を下ろした。"},{"speaker":"剣士","text":"俺は……守りたかっただけだ。"},{"speaker":"剣士","text":"あの時、守れなかった。だから強くならなきゃいけないと思った。"},{"speaker":"剣士","text":"誰にも頼らず、ひとりで全部背負えば、もう失わずに済むと思っていた。"}],"next":"1-8"},{"id":"1-7-4-moon","title":"剣士の本音","image":"1-7-4","lines":[{"type":"narration","text":"{{name}}は、すぐに問いかけなかった。"},{"type":"narration","text":"見えた過去に踏み込みすぎないように、少しだけ距離を置いて、やわらかい声で言う。"},{"speaker":"{{name}}","text":"今は、無理に話さなくていいです。"},{"speaker":"{{name}}","text":"でも……ここには、あなたを責める人はいません。"},{"speaker":"{{name}}","text":"泣けなかったことも、守れなかったと思っていることも、すぐに言葉にしなくて大丈夫です。"},{"speaker":"{{name}}","text":"ひとりで抱え続けなくていい。"},{"type":"narration","text":"剣士は目を伏せた。"},{"type":"narration","text":"しばらく沈黙したあと、低く口を開く。"},{"speaker":"剣士","text":"……俺は、守りたかっただけだ。"},{"speaker":"剣士","text":"守れなかった自分を、ずっと許せなかった。"},{"speaker":"剣士","text":"それなのに、頼ることを弱さだと思っていた。"}],"next":"1-8"},{"id":"1-7-4-fire","title":"剣士の本音","image":"1-7-4","lines":[{"type":"narration","text":"{{name}}は、剣士を見つめた。"},{"speaker":"{{name}}","text":"……守りたかったんですね。"},{"type":"narration","text":"その一言に、剣士の目が大きく揺れる。"},{"speaker":"{{name}}","text":"強くなりたかったんじゃなくて、本当は、もう誰も失いたくなかったんですね。"},{"type":"narration","text":"責められるでもなく、急かされるでもなく、ただ本当の気持ちに触れられたように、剣士は息を詰めた。"},{"speaker":"剣士","text":"……ああ。"},{"speaker":"剣士","text":"守りたかった。誰かを。"},{"speaker":"剣士","text":"もう二度と、失いたくなかった。"},{"type":"narration","text":"剣士は握っていた剣をわずかに下ろした。"},{"speaker":"剣士","text":"でも、守ろうとするほど……誰にも頼れなくなっていた。"},{"speaker":"じょりぃ","text":"強がるのって、疲れるもんね。"},{"speaker":"剣士","text":"……そうだな。疲れる。"}],"next":"1-8"},{"id":"1-7-4-deep","title":"剣士の本音","image":"1-7-4","lines":[{"type":"narration","text":"{{name}}は、影を見つめたあと、静かに剣士へ視線を戻した。"},{"speaker":"{{name}}","text":"その影も……あなたを守ろうとしていたのかもしれません。"},{"speaker":"剣士","text":"……何？"},{"speaker":"{{name}}","text":"誰にも頼るな。弱さを見せるな。ひとりでいろ。"},{"speaker":"{{name}}","text":"それは苦しい言葉だけど……きっと、もう二度と傷つかないように生まれた言葉なんです。"},{"speaker":"{{name}}","text":"もう二度と、大切なものを失わないように。"},{"type":"narration","text":"影が、かすかに揺れる。"},{"type":"narration","text":"まるで、その言葉を否定できないように。"},{"speaker":"剣士","text":"守る……？ こんなものが？"},{"speaker":"{{name}}","text":"たぶん、間違った守り方で。"},{"speaker":"{{name}}","text":"でも、それしか知らなかったんです。"},{"speaker":"{{name}}","text":"ひとりになることでしか、自分を守れないと思っていたのかもしれません。"},{"type":"narration","text":"長い沈黙のあと、剣士はゆっくり剣を下ろした。"},{"speaker":"剣士","text":"……俺は、守りたかっただけだ。"},{"speaker":"剣士","text":"失いたくなかった。"},{"speaker":"剣士","text":"だから、ひとりで強くならなきゃいけないと思っていた。"}],"next":"1-8"},{"id":"1-8","title":"剣士の名はイブキ","image":"1-8","lines":[{"type":"narration","text":"影は、完全に消えたわけではなかった。"},{"type":"narration","text":"けれど、さっきまでの黒い重さはなくなり、淡い霧のようにほどけて、森の中へ溶けていった。"},{"type":"narration","text":"剣士はしばらく無言で立っていた。そして、やがて{{name}}の方を見る。"},{"speaker":"剣士","text":"……助けられた。"},{"speaker":"剣士","text":"礼を言うのは、得意じゃない。だが……ありがとう。"},{"speaker":"{{name}}","text":"私は……ただ、放っておけなかっただけです。"},{"speaker":"じょりぃ","text":"あと、{{name}}もめちゃくちゃがんばってたからね！ わたしも！"},{"speaker":"剣士","text":"そこは自分で言うんだな。"},{"speaker":"じょりぃ","text":"言わないと伝わらないこともあるのですー！"},{"type":"narration","text":"少しだけ空気がやわらぐ。そのあと、剣士は静かに名乗った。"},{"speaker":"剣士","text":"……イブキだ。"},{"speaker":"{{name}}","text":"イブキさん……。"},{"speaker":"イブキ","text":"剣士をしている。誰かと組むのは、得意じゃない。"},{"speaker":"じょりぃ","text":"知ってるー。顔に書いてあるー。"},{"speaker":"イブキ","text":"……うるさい妖精だな。"},{"speaker":"じょりぃ","text":"ほめ言葉として受け取っておくね！"},{"speaker":"{{name}}","text":"私も、強いわけじゃありません。怖いし、迷うし、ひとりだったら、立ち止まっていたかもしれない。"},{"speaker":"{{name}}","text":"でも、じょりぃがいてくれたから進めました。だから……もしよければ、一緒に来ませんか。"},{"speaker":"イブキ","text":"俺は、誰かと歩くのは得意じゃない。"},{"speaker":"じょりぃ","text":"それ、さっき聞いたー。"},{"speaker":"じょりぃ","text":"でもね、得意じゃないことは、ちょっとずつでいいのですー！"},{"speaker":"イブキ","text":"だが、借りは返す。お前たちの旅……少しだけ付き合ってやる。"},{"speaker":"じょりぃ","text":"はい出たー！ “少しだけ”って言う人、最後までいるやつー！"},{"speaker":"イブキ","text":"……最後までは知らん。"},{"speaker":"{{name}}（心の声）","text":"ひとりで始まった旅に、仲間が増えた。"},{"speaker":"{{name}}（心の声）","text":"それだけで、こんなに心があたたかくなるなんて。"}],"next":"1-9"},{"id":"1-9","title":"光の地図に忘れられた神殿が灯る","image":"1-9","lines":[{"type":"narration","text":"そのとき――{{name}}の胸元で、淡い光が揺れた。"},{"type":"narration","text":"取り出したのは、旅立ちの時から持っていた光の地図。"},{"type":"narration","text":"白い紙のようだった地図の上に、ひとつ、新しい光が灯っていた。"},{"type":"narration","text":"光は、古い神殿のかたちを浮かび上がらせる。"},{"speaker":"{{name}}","text":"……新しい場所が。"},{"speaker":"じょりぃ","text":"次の光だね。"},{"type":"narration","text":"イブキが地図をのぞき込み、眉をひそめる。"},{"speaker":"イブキ","text":"神殿、か……。嫌な気配がする。"},{"speaker":"{{name}}（心の声）","text":"きっと、あそこにもまた、誰かの心に絡まった影がある。"},{"speaker":"{{name}}（心の声）","text":"でも――もう、ひとりじゃない。"},{"speaker":"{{name}}","text":"行きましょう。"},{"speaker":"じょりぃ","text":"おー！"},{"speaker":"イブキ","text":"……ああ。"},{"type":"narration","text":"光の地図は、三人の足元を淡く照らし、その先の道を示している。"},{"speaker":"{{name}}（心の声）","text":"影の中にいるのは、倒すべき敵だけじゃない。"},{"speaker":"{{name}}（心の声）","text":"傷ついて、置き去りになった心かもしれない。"},{"speaker":"{{name}}（心の声）","text":"だから私は、光を探しに行く。私の中にも、誰かの中にも眠る光を――取り戻すために。"},{"type":"narration","text":"三人は、光に導かれるように歩き出す。"},{"type":"narration","text":"第2章「忘れられた神殿と、言えなかった言葉」へ続く。"}],"next":"chapter_2"}],"imageSlots":["1-1","1-2","1-3","1-4","1-5-1","1-5-2","1-5-3","1-5-4","1-6-1","1-6-2","1-6-3","1-6-4","1-7-1","1-7-2","1-7-3","1-7-4","1-8","1-9"],"scoreSummary":{"choice_1":{"sceneId":"1-5","light":"すぐ助けに行く","moon":"まず影の動きを見る","fire":"剣士の痛みに意識を向ける","deep":"影が生まれた理由を感じる"},"choice_2":{"sceneId":"1-7-3","light":"一緒に戦います","moon":"今は無理に話さなくていい","fire":"守りたかったんですね","deep":"その影も、あなたを守ろうとしていたのかもしれない"}},"revision":{"version":"1.1","reason":"戦闘シーンに、{{name}}の光の盾、じょりぃのガード魔法、イブキの過去と影が生まれた理由を追加。第1章テーマ「一人で戦わなくてもいい」を強化。"}};
 
 // ── CHAPTER 2 ──
 const CH2_DATA = {
