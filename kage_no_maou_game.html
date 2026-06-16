@@ -572,7 +572,7 @@ html {
   <!-- 一時停止確認ダイアログ -->
   <div id="pause-dialog">
     <div class="pd-title">ここで一時停止しますか？</div>
-    <div class="pd-sub">セーブして終了します。<br>次回「つづきから」を押すと<br>このあたりから再開できます。</div>
+    <div class="pd-sub">セーブして終了します。<br>次回「つづきから」を押すと<br>この章の最初から再開できます。</div>
     <button class="pd-btn pd-btn-ok" onclick="pauseAndExit()">保 存 し て 終 了</button>
     <button class="pd-btn pd-btn-cancel" onclick="hidePauseDialog()">つ づ け る</button>
   </div>
@@ -786,11 +786,16 @@ function toggleMute() {
     isMuted = !isMuted;
     document.getElementById('mute-btn').textContent = isMuted ? '🔇' : '🔊';
     if (isMuted) {
-      if (bgmAudio) fadeBGM(bgmAudio, () => {});
+      // 完全に停止
+      if (bgmAudio) {
+        bgmAudio.pause();
+        bgmAudio.volume = 0;
+      }
     } else {
+      // ミュート解除→currentBGMKeyの曲を再生
       if (currentBGMKey) {
         const key = currentBGMKey;
-        currentBGMKey = null;
+        currentBGMKey = null; // 同じkeyでもplayBGMが通るようにリセット
         playBGM(key);
       }
     }
@@ -960,7 +965,17 @@ function continueGame() {
   document.getElementById('game-screen').classList.add('active');
 
   buildAllSteps();
-  stepIdx = Math.min(saved.stepIdx || 0, steps.length - 1);
+
+  // 保存された章IDの最初のstepへジャンプ
+  const savedChapterId = saved.currentChapterId;
+  const savedStepIdx = saved.stepIdx || 0;
+
+  if (savedChapterId) {
+    const chapterStart = steps.findIndex(s => s.chapterId === savedChapterId);
+    stepIdx = chapterStart >= 0 ? chapterStart : Math.min(savedStepIdx, steps.length - 1);
+  } else {
+    stepIdx = Math.min(savedStepIdx, steps.length - 1);
+  }
 
   updateScoreDots();
   const step = steps[stepIdx];
@@ -1224,8 +1239,8 @@ function buildChapter1() {
     pushLines(sc.lines, resolveImg(sc.image||'', cid), cid, sc.title||'', sid);
   });
 
-  // イブキ加入バナー（1-9の直後・第2章BGMへの切り替えトリガー）
-  pushStep({ type:'joinBanner', chapterId:cid, imageId:'', joinKey:'イブキ加入', speaker:'', text:'', title:'' });
+  // イブキ加入バナー（chapterIdをchapter2にしてdismiss後にhealingBGMへ自動切り替え）
+  pushStep({ type:'joinBanner', chapterId:'chapter2', imageId:'', joinKey:'イブキ加入', speaker:'', text:'', title:'' });
 }
 
 // ═══════════════════════════════════════════
@@ -1855,11 +1870,8 @@ function showJoinBanner(key) {
 
 function dismissJoin() {
   const banner = document.getElementById('join-banner');
-  const joinKey = banner.dataset.joinKey || '';
   banner.classList.remove('show');
   waitingJoin = false;
-  // イブキ加入→第2章BGMへ切り替え
-  if (joinKey === 'イブキ加入') playBGM('healing');
   stepIdx++;
   saveProgress();
   showStep();
