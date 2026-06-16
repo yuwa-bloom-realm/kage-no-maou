@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>影の魔王と、光を選ぶ朝</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Noto+Sans+JP:wght@300;400&display=swap');
+
+:root {
+  --gold: #C9A84C;
+  --gold-l: #E8C97A;
+  --pur-deep: #1A0A2E;
+  --pur-mid: #2D1457;
+  --pur-glow: #7B3FA0;
+  --teal: #2DC4B2;
+  --white: #F0EBF8;
+  --shadow: 0 1px 8px rgba(0,0,0,0.9);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  background: var(--pur-deep);
+  font-family: 'Noto Serif JP', serif;
+  color: var(--white);
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+}
+
+html {
+  height: 100%;
+}
+
+/* ══ SCREENS ══ */
+.screen { display:none; position:fixed; inset:0; z-index:50; width:100%; height:100%; }
+.screen.active { display:flex; }
+
+/* ── TITLE SCREEN ── */
+#title-screen {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  background: #0a0014;
+}
+
+#title-bg-img {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 1;
+  display: block;
+}
+
+/* 下部グラデーション */
+#title-screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom,
+      transparent 45%,
+      rgba(10,0,20,0.7) 70%,
+      rgba(10,0,20,0.95) 100%
+    );
+  pointer-events: none;
+}
+
+#title-screen > * { position: relative; z-index: 1; }
+
+/* ボタンエリア */
+#title-btn-area {
+  width: 100%;
+  padding: 0 28px 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+
+/* コピーライト */
+#title-copyright {
+  font-size: 10px;
+  color: rgba(201,168,76,0.4);
+  letter-spacing: 0.15em;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  margin-bottom: 4px;
+}
+
+/* はじめからボタン（メイン・光るやつ） */
+.ts-btn {
+  width: 100%;
+  max-width: 320px;
+  background: linear-gradient(135deg, rgba(123,63,160,0.9) 0%, rgba(80,20,130,0.95) 100%);
+  border: 1px solid rgba(201,168,76,0.6);
+  border-radius: 4px;
+  padding: 16px 0;
+  color: var(--white);
+  font-size: 14px;
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: .38em;
+  cursor: pointer;
+  transition: all .28s;
+  text-shadow: 0 0 12px rgba(201,168,76,0.5);
+  box-shadow:
+    0 0 20px rgba(123,63,160,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ts-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  transition: left 0.5s;
+}
+
+.ts-btn:hover::before, .ts-btn:active::before { left: 150%; }
+.ts-btn:hover, .ts-btn:active {
+  background: linear-gradient(135deg, rgba(150,80,200,0.95) 0%, rgba(100,30,160,1) 100%);
+  border-color: var(--gold);
+  box-shadow: 0 0 30px rgba(123,63,160,0.7), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+/* つづきからボタン（サブ・落ち着いた） */
+.ts-btn-sub {
+  width: 100%;
+  max-width: 320px;
+  background: rgba(20,8,40,0.7);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 4px;
+  padding: 14px 0;
+  color: rgba(232,201,122,0.75);
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: .38em;
+  cursor: pointer;
+  transition: all .28s;
+}
+
+.ts-btn-sub:hover, .ts-btn-sub:active {
+  background: rgba(45,20,80,0.8);
+  border-color: rgba(201,168,76,0.6);
+  color: var(--gold-l);
+}
+
+.ts-btn-sub.hidden { display: none; }
+
+/* ── GAME SCREEN ── */
+#game-screen {
+  flex-direction: column;
+  cursor: pointer;
+}
+
+/* image area */
+#img-wrap {
+  position:relative;
+  flex:0 0 65%;
+  overflow:hidden;
+  background:var(--pur-deep);
+}
+
+#scene-img {
+  width:100%; height:100%;
+  object-fit:cover;
+  object-position:center top;
+  display:block;
+  transition:opacity .5s;
+}
+
+#img-wrap::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(to bottom, transparent 35%, rgba(26,10,46,.88) 100%),
+    linear-gradient(to right, rgba(26,10,46,.2) 0%, transparent 22%, transparent 78%, rgba(26,10,46,.2) 100%);
+  pointer-events:none;
+}
+
+#img-wrap.no-img {
+  background:
+    radial-gradient(ellipse at 30% 55%, rgba(74,144,217,.2) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 30%, rgba(123,63,160,.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 85%, rgba(45,196,178,.12) 0%, transparent 45%),
+    var(--pur-deep);
+}
+
+.ph-wrap {
+  display:none;
+  position:absolute; inset:0;
+  align-items:center; justify-content:center;
+  flex-direction:column; gap:10px;
+  pointer-events:none;
+}
+#img-wrap.no-img .ph-wrap { display:flex; }
+#img-wrap.no-img #scene-img { opacity:0; }
+.ph-icon { font-size:34px; opacity:.28; }
+.ph-text { font-size:11px; color:var(--gold); opacity:.3; letter-spacing:.2em; font-family:'Noto Sans JP',sans-serif; }
+
+/* badges */
+#chapter-badge {
+  position:absolute; top:14px; left:16px;
+  font-size:10px; color:var(--gold);
+  letter-spacing:.2em; font-family:'Noto Sans JP',sans-serif;
+  font-weight:300; opacity:.65; z-index:10;
+}
+#scene-title-lbl {
+  position:absolute; top:16px; left:50%; transform:translateX(-50%);
+  font-size:11px; letter-spacing:.22em; color:var(--gold-l);
+  text-shadow:var(--shadow); font-family:'Noto Sans JP',sans-serif;
+  font-weight:300; white-space:nowrap; z-index:10; opacity:.75;
+}
+#score-dots {
+  position:absolute; top:14px; right:16px;
+  display:flex; gap:6px; z-index:10;
+}
+.sdot {
+  width:7px; height:7px; border-radius:50%;
+  border:1px solid rgba(201,168,76,.35);
+  transition:all .4s; background:transparent;
+}
+.sdot.light.on { background:#FFD700; border-color:#FFD700; box-shadow:0 0 6px #FFD700; }
+.sdot.moon.on  { background:#C8D8F8; border-color:#C8D8F8; box-shadow:0 0 6px #C8D8F8; }
+.sdot.fire.on  { background:#FF7755; border-color:#FF7755; box-shadow:0 0 6px #FF7755; }
+.sdot.deep.on  { background:#BB88FF; border-color:#BB88FF; box-shadow:0 0 6px #BB88FF; }
+
+/* text area */
+#txt-area {
+  flex:1;
+  position:relative;
+  background:linear-gradient(to bottom, rgba(26,10,46,.97) 0%, rgba(18,5,34,1) 100%);
+  border-top:1px solid rgba(201,168,76,.18);
+  display:flex; flex-direction:column;
+  overflow:hidden; min-height:0;
+}
+#txt-area::before {
+  content:'';
+  position:absolute; top:0; left:50%; transform:translateX(-50%);
+  width:70px; height:1px;
+  background:linear-gradient(to right,transparent,var(--gold),transparent);
+}
+
+#spk-name {
+  font-size:11px; letter-spacing:.2em; color:var(--gold);
+  font-family:'Noto Sans JP',sans-serif; font-weight:400;
+  padding:11px 20px 3px; min-height:28px; flex-shrink:0;
+}
+#dlg-text {
+  flex:1; padding:0 20px 40px;
+  font-size:15px; line-height:1.9;
+  color:var(--white); font-weight:300;
+  overflow-y:auto; scrollbar-width:none; min-height:0;
+  white-space:pre-wrap;
+}
+#dlg-text::-webkit-scrollbar { display:none; }
+#dlg-text.narr { color:rgba(240,235,248,.72); font-style:italic; font-size:13.5px; letter-spacing:.03em; }
+#dlg-text.thgt { color:rgba(210,190,255,.88); font-size:14px; font-style:italic; }
+#dlg-text.sys  {
+  color:var(--gold-l); font-family:'Noto Sans JP',sans-serif;
+  font-size:13px; letter-spacing:.18em; text-align:center; padding-top:8px;
+}
+#dlg-text.chtr {
+  color:var(--gold-l); font-family:'Noto Serif JP', serif;
+  font-size:15px; font-weight:300; letter-spacing:.18em; text-align:center;
+  line-height:2.2; padding-top:12px;
+}
+
+.fade-up { animation:fadeUp .45s ease forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+
+#tap-hint {
+  position:absolute; bottom:12px; right:18px;
+  font-size:10px; color:var(--gold); letter-spacing:.15em;
+  font-family:'Noto Sans JP',sans-serif;
+  animation:blink 2.2s ease-in-out infinite; pointer-events:none;
+}
+@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:.85} }
+
+/* choice panel */
+#choice-panel {
+  display:none; flex-direction:column;
+  gap:7px; padding:10px 14px 14px;
+  overflow-y:auto; scrollbar-width:none;
+  flex:1; min-height:0;
+}
+#choice-panel::-webkit-scrollbar { display:none; }
+#choice-panel.show { display:flex; }
+.choice-lbl {
+  font-size:10px; letter-spacing:.25em; color:var(--gold);
+  font-family:'Noto Sans JP',sans-serif; font-weight:300;
+  opacity:.75; padding:0 4px 3px; flex-shrink:0;
+}
+.cbtn {
+  background:linear-gradient(135deg, rgba(45,20,87,.75) 0%, rgba(26,10,46,.88) 100%);
+  border:1px solid rgba(201,168,76,.28);
+  border-radius:5px; padding:11px 14px;
+  color:var(--white); font-size:13.5px;
+  font-family:'Noto Serif JP',serif; font-weight:300;
+  line-height:1.65; text-align:left;
+  cursor:pointer; transition:all .22s;
+  position:relative; flex-shrink:0;
+}
+.cbtn::before {
+  content:''; position:absolute;
+  left:0; top:0; bottom:0; width:3px;
+  background:var(--gold); border-radius:5px 0 0 5px;
+  opacity:0; transition:opacity .2s;
+}
+.cbtn:hover::before, .cbtn:active::before { opacity:1; }
+.cbtn:hover, .cbtn:active {
+  border-color:rgba(201,168,76,.65);
+  background:linear-gradient(135deg, rgba(60,28,105,.9) 0%, rgba(38,14,65,.95) 100%);
+  transform:translateX(3px);
+}
+
+/* name input overlay */
+#name-input-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(20,6,40,.9); z-index:80;
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:20px; padding:40px 28px;
+}
+#name-input-overlay.show { display:flex; }
+.ni-label { font-size:11px; letter-spacing:.22em; color:var(--gold); font-family:'Noto Sans JP',sans-serif; }
+#name-input {
+  background:rgba(45,20,87,.5);
+  border:1px solid rgba(201,168,76,.4);
+  border-radius:4px; padding:12px 18px;
+  color:var(--white); font-size:16px;
+  font-family:'Noto Serif JP',serif; font-weight:300;
+  text-align:center; width:100%; max-width:260px;
+  outline:none; transition:border-color .2s;
+}
+#name-input:focus { border-color:var(--gold); }
+#name-input::placeholder { color:rgba(240,235,248,.3); font-size:13px; }
+.ni-btn {
+  background:transparent;
+  border:1px solid rgba(201,168,76,.45); border-radius:40px;
+  padding:12px 38px; color:var(--gold-l);
+  font-size:12.5px; font-family:'Noto Sans JP',sans-serif;
+  letter-spacing:.28em; cursor:pointer; transition:all .28s;
+}
+.ni-btn:hover { background:rgba(201,168,76,.1); border-color:var(--gold); }
+
+/* join banner */
+#join-banner {
+  display:none; position:fixed; inset:0;
+  background:rgba(20,6,40,.85); z-index:80;
+  align-items:center; justify-content:center;
+}
+#join-banner.show { display:flex; }
+.jbox {
+  background:linear-gradient(135deg, rgba(45,20,87,.95), rgba(26,10,46,.98));
+  border:1px solid rgba(201,168,76,.4); border-radius:10px;
+  padding:28px 36px; text-align:center;
+  display:flex; flex-direction:column; gap:12px; align-items:center;
+  max-width:280px;
+}
+.jicon { font-size:40px; }
+.jtitle { font-size:10px; letter-spacing:.25em; color:var(--gold); font-family:'Noto Sans JP',sans-serif; }
+.jname { font-size:22px; font-weight:700; }
+.jsub { font-size:12px; color:rgba(240,235,248,.6); font-family:'Noto Sans JP',sans-serif; }
+.jbtn {
+  background:transparent; border:1px solid rgba(201,168,76,.4);
+  border-radius:30px; padding:9px 28px;
+  color:var(--gold-l); font-size:12px;
+  font-family:'Noto Sans JP',sans-serif; letter-spacing:.2em;
+  cursor:pointer; transition:all .2s;
+}
+.jbtn:hover { background:rgba(201,168,76,.1); }
+
+/* ── RESULT SCREEN ── */
+#result-screen {
+  flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; padding:36px 28px; text-align:center;
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(123,63,160,.5) 0%, transparent 58%),
+    var(--pur-deep);
+  overflow-y:auto; scrollbar-width:none;
+}
+#result-screen::-webkit-scrollbar { display:none; }
+
+.rs-eyebrow { font-family:'Noto Sans JP',sans-serif; font-size:10px; letter-spacing:.3em; color:var(--gold); opacity:.7; }
+.rs-icon { font-size:50px; }
+.rs-typename { font-size:24px; font-weight:700; line-height:1.45; text-shadow:0 0 30px rgba(123,63,160,.9); }
+.rs-div { width:50px; height:1px; background:linear-gradient(to right,transparent,var(--gold),transparent); }
+.rs-text { font-size:13px; color:rgba(240,235,248,.7); font-family:'Noto Sans JP',sans-serif; font-weight:300; line-height:1.9; max-width:300px; white-space:pre-wrap; }
+.rs-scores { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:4px 0; }
+.rs-pill {
+  background:rgba(45,20,87,.55); border:1px solid rgba(201,168,76,.22);
+  border-radius:20px; padding:5px 14px;
+  font-size:11px; font-family:'Noto Sans JP',sans-serif;
+  color:rgba(240,235,248,.65);
+}
+.rs-pill.win { border-color:var(--gold); color:var(--gold-l); background:rgba(65,30,110,.75); }
+
+.rs-common-title { font-size:16px; font-weight:700; color:var(--gold-l); margin-top:8px; }
+.rs-common-text { font-size:13px; color:rgba(240,235,248,.75); font-family:'Noto Sans JP',sans-serif; font-weight:300; line-height:1.9; max-width:300px; white-space:pre-wrap; }
+
+.rs-btn {
+  background:transparent; border:1px solid rgba(201,168,76,.45);
+  border-radius:40px; padding:12px 36px; color:var(--gold-l);
+  font-size:12.5px; font-family:'Noto Sans JP',sans-serif;
+  letter-spacing:.22em; cursor:pointer; transition:all .28s; margin-top:8px;
+}
+.rs-btn:hover { background:rgba(201,168,76,.1); border-color:var(--gold); }
+
+/* mute button */
+#mute-btn {
+  position:fixed; bottom:18px; left:18px;
+  width:36px; height:36px; border-radius:50%;
+  background:rgba(26,10,46,0.75);
+  border:1px solid rgba(201,168,76,0.35);
+  color:var(--gold-l); font-size:15px;
+  cursor:pointer; z-index:60;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .25s;
+  backdrop-filter:blur(4px);
+}
+#mute-btn:hover { border-color:var(--gold); background:rgba(45,20,87,0.85); }
+
+/* transition */
+#ov {
+  position:fixed; inset:0; background:var(--pur-deep);
+  z-index:100; pointer-events:none; opacity:0; transition:opacity .45s;
+}
+#ov.on { opacity:1; pointer-events:all; }
+</style>
+</head>
+<body>
+
+<div id="ov"></div>
+
+<!-- TITLE SCREEN -->
+<div id="title-screen" class="screen active">
+  <img id="title-bg-img" src="title-bg.png" alt="" onerror="this.style.display='none'">
+  <div id="title-btn-area">
+    <div id="title-copyright">© yuwa Bloom Realm</div>
+    <button class="ts-btn" onclick="startTitle()">は じ め か ら</button>
+    <button class="ts-btn-sub hidden" id="continue-btn" onclick="continueGame()">つ づ き か ら</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen" class="screen">
+  <div id="img-wrap" class="no-img">
+    <img id="scene-img" src="" alt="" onerror="document.getElementById('img-wrap').classList.add('no-img')" onload="document.getElementById('img-wrap').classList.remove('no-img')">
+    <div class="ph-wrap">
+      <div class="ph-icon">🌫</div>
+      <div class="ph-text" id="ph-txt"></div>
+    </div>
+    <div id="chapter-badge"></div>
+    <div id="scene-title-lbl"></div>
+    <div id="score-dots">
+      <div class="sdot light" id="d-light"></div>
+      <div class="sdot moon"  id="d-moon"></div>
+      <div class="sdot fire"  id="d-fire"></div>
+      <div class="sdot deep"  id="d-deep"></div>
+    </div>
+  </div>
+  <div id="txt-area" onclick="handleTap()">
+    <div id="spk-name"></div>
+    <div id="dlg-text"></div>
+    <div id="tap-hint">▼ タップして進む</div>
+    <div id="choice-panel">
+      <div class="choice-lbl">— どう声をかける？ —</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAME INPUT OVERLAY -->
+<div id="name-input-overlay">
+  <div class="ni-label">あなたの名前を教えて</div>
+  <input id="name-input" type="text" maxlength="10" placeholder="ゆわ" autocomplete="off">
+  <button class="ni-btn" onclick="submitName()">決定</button>
+</div>
+
+<!-- JOIN BANNER -->
+<div id="join-banner">
+  <div class="jbox">
+    <div class="jicon" id="j-icon">✨</div>
+    <div class="jtitle">新たな仲間</div>
+    <div class="jname" id="j-name"></div>
+    <div class="jsub" id="j-sub"></div>
+    <button class="jbtn" onclick="dismissJoin()">仲間にする</button>
+  </div>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result-screen" class="screen">
+  <div class="rs-eyebrow">あなたの旅のしるし</div>
+  <div class="rs-icon" id="rs-icon"></div>
+  <div class="rs-typename" id="rs-typename"></div>
+  <div class="rs-div"></div>
+  <div class="rs-text" id="rs-text"></div>
+  <div class="rs-scores" id="rs-scores"></div>
+  <div class="rs-div"></div>
+  <div class="rs-common-title" id="rs-ctitle"></div>
+  <div class="rs-common-text" id="rs-ctext"></div>
+  <button class="rs-btn" onclick="location.reload()">も う 一 度</button>
+</div>
+
+<!-- MUTE BUTTON -->
+<button id="mute-btn" onclick="toggleMute()">🔊</button>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const SCORE_TYPES = {
+  light: { name:"光の先導者",  icon:"☀️",  typeId:"ibuki",  resultTitle:"一人で戦ってきた光" },
+  moon:  { name:"静寂の観察者", icon:"🌙",  typeId:"kotoha", resultTitle:"心の声を取り戻す光" },
+  fire:  { name:"炎の共感者",  icon:"🔥",  typeId:"mamoru", resultTitle:"守り続けたやさしさの灯り" },
+  deep:  { name:"深淵の癒し手", icon:"💜",  typeId:"lumina", resultTitle:"ただいまと言える星灯り" }
+};
+
+// スコアキー（エンディングのendingScoreKeysとの対応）
+const ENDING_SCORE_MAP = {
+  ibuki:"light", kotoha:"moon", mamoru:"fire", lumina:"deep"
+};
+
+// JOIN BANNERS
+const JOIN_DATA = {
+  "コトハ加入": { icon:"🪄", name:"コトハ", sub:"言葉の魔法使い" },
+  "マモル加入": { icon:"🛡", name:"マモル", sub:"守りの戦士" }
+};
+
+// ═══════════════════════════════════════════
+// BGM ENGINE
+// ═══════════════════════════════════════════
+const BGM = {
+  title:   'BGM_05_ending_Frozen_Fjord.mp3',  // タイトル〜プロローグ（ending曲を流用）
+  field:   'BGM_02_forest_Nocturnal_Bloom.mp3', // 第1章
+  healing: 'BGM_03_healing_Mystic_Tides.mp3',   // 第2章
+  explore: 'BGM_04_explore_Dual_Illusions.mp3', // 第3章
+  lumina:  'BGM_08_lumina_Forest_Sage.mp3',     // 第4章
+  tower:   'BGM_09_maou_tower_Foreboding.mp3',  // 第5章
+  battle:  'BGM_06_battle_Sword_Flash.mp3',     // 通常戦闘
+  boss:    'BGM_07_boss_EpicBattle_Deity.mp3',  // ボス戦
+  ending:  'BGM_05_ending_Frozen_Fjord.mp3',    // エンディング（同じ曲で回収）
+  fin:     'BGM_10_fin_Moonlit_Overture.mp3'    // FIN余韻用（任意）
+};
+
+// ループしない曲（曲が終わったら最初から再生）
+const BGM_NO_LOOP = new Set(['title', 'ending', 'fin']);
+
+// 章ごとのBGM
+const SCENE_BGM_MAP = {
+  prologue: 'title',
+  chapter1: 'field',
+  chapter2: 'healing',
+  chapter3: 'explore',
+  chapter4: 'lumina',
+  chapter5: 'tower',
+  ending:   'ending'
+};
+
+// 戦闘シーン（戦闘終了後は章のBGMに戻る）
+const BATTLE_SCENES = new Set([
+  '1-2',                                    // 第1章 イブキ戦
+  '3-8', '3-9', '3-12',                    // 第3章 嘆きの谷
+  '4-7',                                    // 第4章 星喰いの影
+  '5-4', '5-5', '5-6',                     // 第5章 廊下
+]);
+
+const BOSS_SCENES = new Set([
+  '5-10', '5-11', '5-12',
+  '5-12-light', '5-12-moon', '5-12-fire', '5-12-deep'
+]);
+
+// 戦闘終了後に章BGMに戻るシーン
+const BATTLE_END_SCENES = new Set([
+  '1-3',          // 第1章 イブキ加入後
+  '3-13',         // 第3章 マモル加入後
+  '4-8',          // 第4章 戦闘後
+  '5-7', '5-8',   // 第5章 廊下後
+  '5-13',         // 第5章 ボス戦後（抱きしめシーン→healing）
+]);
+
+// FIN画面（5-20のみ）
+const FIN_SCENES = new Set(['ending-07']);
+
+// エンディング継続シーン（5-17〜5-19 + 結果画面）
+const ENDING_SCENES = new Set([
+  'ending-01','ending-02','ending-03',
+  'ending-04','ending-05','ending-06'
+]);
+
+// 浄化・感動シーン（第5章）
+const HEALING_SCENES = new Set([
+  '5-13', '5-14', '5-14-2', '5-15', '5-16'
+]);
+
+let bgmAudio = null;
+let currentBGMKey = null;
+let isMuted = false;
+let bgmSupported = true;
+const BGM_VOLUME = 0.3; // 小さめ（文章の邪魔にならない程度）
+
+function playBGM(key) {
+  if (!bgmSupported || isMuted) return;
+  if (key === currentBGMKey) return;
+  const file = BGM[key];
+  if (!file) return;
+  try {
+    if (bgmAudio && !bgmAudio.paused) {
+      fadeBGM(bgmAudio, () => switchBGM(key, file));
+    } else {
+      switchBGM(key, file);
+    }
+  } catch(e) { bgmSupported = false; }
+}
+
+function switchBGM(key, file) {
+  try {
+    if (bgmAudio) { bgmAudio.pause(); bgmAudio = null; }
+    currentBGMKey = key;
+    const audio = new Audio(file);
+    // ループしない曲は ended で最初から再生
+    if (BGM_NO_LOOP.has(key)) {
+      audio.loop = false;
+      audio.addEventListener('ended', () => {
+        try { audio.currentTime = 0; audio.play().catch(()=>{}); } catch(e) {}
+      });
+    } else {
+      audio.loop = true;
+    }
+    audio.volume = 0;
+    bgmAudio = audio;
+    const p = audio.play();
+    if (p && p.catch) p.catch(() => {});
+    fadeInBGM(audio, BGM_VOLUME);
+  } catch(e) { bgmSupported = false; }
+}
+
+function fadeBGM(audio, cb) {
+  try {
+    const step = 0.03;
+    const iv = setInterval(() => {
+      try {
+        if (audio.volume > step) { audio.volume -= step; }
+        else { audio.volume = 0; audio.pause(); clearInterval(iv); if (cb) cb(); }
+      } catch(e) { clearInterval(iv); if (cb) cb(); }
+    }, 40);
+  } catch(e) { if (cb) cb(); }
+}
+
+function fadeInBGM(audio, targetVol) {
+  try {
+    const step = 0.02;
+    const iv = setInterval(() => {
+      try {
+        if (audio.volume < targetVol - step) { audio.volume += step; }
+        else { audio.volume = targetVol; clearInterval(iv); }
+      } catch(e) { clearInterval(iv); }
+    }, 40);
+  } catch(e) {}
+}
+
+function toggleMute() {
+  try {
+    isMuted = !isMuted;
+    document.getElementById('mute-btn').textContent = isMuted ? '🔇' : '🔊';
+    if (isMuted) {
+      if (bgmAudio) fadeBGM(bgmAudio, () => {});
+    } else {
+      if (currentBGMKey) {
+        const key = currentBGMKey;
+        currentBGMKey = null;
+        playBGM(key);
+      }
+    }
+  } catch(e) {}
+}
+
+function getBGMKeyForStep(step) {
+  const sid = step.sceneId || step.id || '';
+  const cid = step.chapterId || '';
+
+  // FIN画面（5-20 最初のステップ）→ Moonlit_Overture
+  if (step.isFin || FIN_SCENES.has(sid)) return 'fin';
+
+  // エンディングシーン（5-17〜5-19）→ ending継続
+  if (ENDING_SCENES.has(sid)) return 'ending';
+
+  // 浄化・感動シーン（第5章）
+  if (HEALING_SCENES.has(sid)) return 'healing';
+
+  // ボス戦
+  if (BOSS_SCENES.has(sid)) return 'boss';
+
+  // 通常戦闘
+  if (BATTLE_SCENES.has(sid)) return 'battle';
+
+  // 戦闘終了→章BGMに戻る
+  if (BATTLE_END_SCENES.has(sid)) return SCENE_BGM_MAP[cid] || 'field';
+
+  // 章ベースのデフォルト
+  return SCENE_BGM_MAP[cid] || 'field';
+}
+
+function updateBGMForStep(step) {
+  const key = getBGMKeyForStep(step);
+  playBGM(key);
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER BADGES
+const CHAPTER_LABELS = {
+  prologue:"プロローグ",
+  chapter1:"第 1 章",
+  chapter2:"第 2 章",
+  chapter3:"第 3 章",
+  chapter4:"第 4 章",
+  chapter5:"第 5 章",
+  ending:"エンディング"
+};
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let playerName = "ゆわ";
+let scores = { light:0, moon:0, fire:0, deep:0 };
+let lastScore = null;
+
+// scene queue - flat list of "micro-steps"
+// each step: { type, imageId, speaker, text, choices, nextId, chapterId }
+let steps = [];
+let stepIdx = 0;
+let waitingChoice = false;
+let waitingName = false;
+let waitingJoin = false;
+let pendingNextId = null; // after join banner dismissed
+
+// ═══════════════════════════════════════════
+// DOM
+// ═══════════════════════════════════════════
+const $img     = document.getElementById('scene-img');
+const $imgWrap = document.getElementById('img-wrap');
+const $stitle  = document.getElementById('scene-title-lbl');
+const $phTxt   = document.getElementById('ph-txt');
+const $badge   = document.getElementById('chapter-badge');
+const $spk     = document.getElementById('spk-name');
+const $txt     = document.getElementById('dlg-text');
+const $tapHint = document.getElementById('tap-hint');
+const $choices = document.getElementById('choice-panel');
+const $ov      = document.getElementById('ov');
+
+// ═══════════════════════════════════════════
+// NAME REPLACE
+// ═══════════════════════════════════════════
+function N(s) {
+  if (!s) return s;
+  return s.replace(/\{\{name\}\}/g, playerName).replace(/\bname\b/g, playerName);
+}
+
+// ═══════════════════════════════════════════
+// SAVE / LOAD（メモリベース・Claude.ai対応）
+// ═══════════════════════════════════════════
+const SAVE_KEY = 'kage_maou_save';
+
+// まずlocalStorageが使えるか安全に確認
+const SafeStorage = (function() {
+  let _ls = null;
+  let _mem = {}; // フォールバック用メモリストレージ
+
+  // 使用可能チェック（一度だけ）
+  try {
+    const test = '__test__';
+    window.localStorage.setItem(test, '1');
+    window.localStorage.removeItem(test);
+    _ls = window.localStorage;
+  } catch(e) {
+    _ls = null; // 使えない環境はメモリで代替
+  }
+
+  return {
+    get(key) {
+      try {
+        if (_ls) return _ls.getItem(key);
+        return _mem[key] || null;
+      } catch(e) { return _mem[key] || null; }
+    },
+    set(key, val) {
+      try {
+        if (_ls) _ls.setItem(key, val);
+        else _mem[key] = val;
+      } catch(e) { _mem[key] = val; }
+    },
+    remove(key) {
+      try {
+        if (_ls) _ls.removeItem(key);
+        delete _mem[key];
+      } catch(e) { delete _mem[key]; }
+    }
+  };
+})();
+
+function saveProgress() {
+  try {
+    const data = { playerName, scores, lastScore, stepIdx };
+    SafeStorage.set(SAVE_KEY, JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const raw = SafeStorage.get(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function checkContinue() {
+  try {
+    const saved = loadProgress();
+    const btn = document.getElementById('continue-btn');
+    if (saved && saved.stepIdx > 0 && btn) {
+      btn.classList.remove('hidden');
+    }
+  } catch(e) {}
+}
+
+function continueGame() {
+  const saved = loadProgress();
+  if (!saved) return;
+  playerName = saved.playerName || 'ゆわ';
+  scores = saved.scores || { light:0, moon:0, fire:0, deep:0 };
+  lastScore = saved.lastScore || null;
+
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+
+  buildAllSteps();
+  stepIdx = Math.min(saved.stepIdx || 0, steps.length - 1);
+  updateScoreDots();
+  const step = steps[stepIdx];
+  if (step) updateBGMForStep(step);
+  showStep();
+}
+
+// ─── 起動時チェック ───
+function onAppReady() {
+  try { checkContinue(); } catch(e) {}
+  try {
+    const ts = document.getElementById('title-screen');
+    if (ts) ts.addEventListener('click', () => {
+      try { if (!bgmAudio) playBGM('title'); } catch(e) {}
+    }, { once: true });
+  } catch(e) {}
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', onAppReady);
+} else {
+  onAppReady();
+}
+
+// ═══════════════════════════════════════════
+// TITLE → GAME
+// ═══════════════════════════════════════════
+function startTitle() {
+  SafeStorage.remove(SAVE_KEY);
+  scores = { light:0, moon:0, fire:0, deep:0 };
+  lastScore = null;
+  playerName = 'ゆわ';
+  document.getElementById('title-screen').classList.remove('active');
+  document.getElementById('game-screen').classList.add('active');
+  buildAllSteps();
+  playBGM('title');
+  showStep();
+}
+
+// ═══════════════════════════════════════════
+// STEP BUILDER — converts all chapters to flat step array
+// ═══════════════════════════════════════════
+function buildAllSteps() {
+  steps = [];
+
+  // タイトルカード挿入ヘルパー
+  function pushTitleCard(chapterNum, title, subtitle, imageId, cid) {
+    pushStep({
+      type: 'chapterTransition',
+      imageId: imageId || '',
+      chapterId: cid,
+      speaker: '',
+      text: subtitle ? `${chapterNum}\n${subtitle}` : chapterNum,
+      title: ''
+    });
+  }
+
+  buildPrologue();
+
+  // 第1章タイトルカード（プロローグのendCardから自動生成されるので不要）
+  buildChapter1();
+
+  // 第2章タイトルカード
+  pushTitleCard('第 2 章', '', '忘れられた神殿と、言えなかった言葉', '2-1.png', 'chapter2');
+  buildChapter2();
+
+  // 第3章タイトルカード
+  pushTitleCard('第 3 章', '', '嘆きの谷と、泣けなかった盾', '3-1.png', 'chapter3');
+  buildChapter3();
+
+  // 第4章タイトルカード
+  pushTitleCard('第 4 章', '', '星灯りの村と、居場所をなくした灯', '4-1.png', 'chapter4');
+  buildChapter4();
+
+  // 第5章タイトルカード
+  pushTitleCard('第 5 章', '', '影の魔王との最終戦', '5-1.png', 'chapter5');
+  buildChapter5();
+
+  buildEnding();
+
+  stepIdx = 0;
+}
+
+// ── HELPERS ──
+function pushStep(obj) { steps.push(obj); }
+
+function pushLines(lines, imageId, chapterId, titleHint) {
+  // lines: array of {type/speaker, text, ...}
+  (lines || []).forEach(line => {
+    const t = line.type || detectType(line.speaker);
+    const text = Array.isArray(line.text) ? line.text.join('\n') : (line.text || '');
+    pushStep({
+      type: t, imageId, chapterId,
+      speaker: line.speaker || '',
+      text, title: titleHint || ''
+    });
+  });
+}
+
+function detectType(speaker) {
+  if (!speaker || speaker === 'narration' || speaker === '—' || speaker === 'narr') return 'narration';
+  if (speaker && speaker.includes('心の声')) return 'thought';
+  return 'dialogue';
+}
+
+function pushBlocks(blocks, imageId, chapterId, titleHint) {
+  // blocks: {speaker, text} where speaker "—" = narration
+  (blocks || []).forEach(b => {
+    const isSpeaker = b.speaker && b.speaker !== '—';
+    const t = !isSpeaker ? 'narration'
+      : b.speaker.includes('心の声') ? 'thought'
+      : 'dialogue';
+    const text = Array.isArray(b.text) ? b.text.join('\n') : (b.text || '');
+    pushStep({ type:t, imageId, chapterId, speaker:b.speaker||'', text, title:titleHint||'' });
+  });
+}
+
+function pushChoice(prompt, options, imageId, chapterId, titleHint) {
+  pushStep({
+    type:'choice', imageId, chapterId,
+    speaker:'', text: prompt || 'どうする？',
+    title: titleHint || '',
+    choices: options
+  });
+}
+
+function pushSystem(text, imageId, chapterId) {
+  pushStep({ type:'system', imageId, chapterId, speaker:'', text });
+}
+
+function pushChapterTransition(lines, imageId, chapterId) {
+  const text = Array.isArray(lines) ? lines.join('\n') : lines;
+  pushStep({ type:'chapterTransition', imageId, chapterId, speaker:'', text });
+}
+
+// img helper
+function resolveImg(id, chapterId) {
+  if (!id) return '';
+  // Already has extension
+  if (id.includes('.')) return id;
+  // prologue: p-0 → p-0.png
+  if (id.startsWith('p-')) return `${id}.png`;
+  // ending: 5-17 etc
+  if (/^\d+-\d+$/.test(id) && parseInt(id) >= 5) return `${id}.png`;
+  return `${id}.png`;
+}
+
+// ═══════════════════════════════════════════
+// PROLOGUE BUILDER
+// ═══════════════════════════════════════════
+function buildPrologue() {
+  const cid = 'prologue';
+  const scenes = PROLOGUE_DATA.scenes;
+  const sceneMap = {};
+  scenes.forEach(s => sceneMap[s.id] = s);
+
+  const visited = new Set();
+  let curId = scenes[0].id;
+
+  while (curId && curId !== 'chapter1' && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = sc.imageId && sc.imageId.includes('.png') ? sc.imageId : resolveImg(sc.imageId, cid);
+
+    // narrationBlock / dialogueBlock → pages配列を1タップずつに展開
+    if (sc.type === 'narrationBlock' || sc.type === 'dialogueBlock') {
+      const spk = sc.speaker || '';
+      (sc.pages || []).forEach(page => {
+        // pageは文字列配列。「\n」や「speaker\ntext」形式を処理
+        const lines = Array.isArray(page) ? page : [page];
+        // speakerとtextを分離（"じょりぃ\nテキスト" 形式対応）
+        let speaker = spk;
+        let textLines = lines;
+
+        if (lines.length > 0 && lines[0].includes('\n')) {
+          const parts = lines[0].split('\n');
+          speaker = parts[0];
+          textLines = [parts.slice(1).join('\n'), ...lines.slice(1)];
+        } else if (lines.length >= 2 && !lines[0].includes('。') && !lines[0].includes('……') && !lines[0].includes('——') && lines[0].length <= 12) {
+          // 短い行がspeakerの可能性（「じょりぃ」「{{name}}」など）
+          const possibleSpeaker = lines[0];
+          if (['じょりぃ','イブキ','コトハ','マモル','おじいちゃん'].some(s => possibleSpeaker.includes(s)) || possibleSpeaker.includes('{{name}}')) {
+            speaker = possibleSpeaker;
+            textLines = lines.slice(1);
+          }
+        }
+
+        // 心の声判定
+        const isThought = speaker.includes('心の声') || speaker.includes('（心の声）');
+        const isNarr = sc.type === 'narrationBlock' && !speaker;
+        const type = isThought ? 'thought' : isNarr ? 'narration' : 'dialogue';
+        const text = textLines.join('\n');
+        pushStep({ type, imageId:img, chapterId:cid, speaker:N(speaker), text:N(text), title:'' });
+      });
+
+      // endCard（章タイトルカード）
+      if (sc.endCard) {
+        pushStep({ type:'chapterTransition', imageId:img, chapterId:cid, speaker:'',
+          text:`${sc.endCard.title}\n${sc.endCard.subtitle}`, title:'' });
+      }
+
+    } else if (sc.type === 'nameInput') {
+      const text = Array.isArray(sc.text) ? sc.text.join('\n') : sc.text;
+      pushStep({ type:'nameInput', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:N(text), title:'' });
+
+    } else if (sc.type === 'choice') {
+      const text = Array.isArray(sc.text) ? sc.text.join('\n') : sc.text;
+      const opts = (sc.choices || []).map(c => ({
+        label: c.label,
+        score: c.effects || {},
+        inlineNextId: c.next,
+        afterLines: []
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:N(text), title:'', choices:opts, prologueSceneMap:sceneMap });
+    }
+
+    curId = sc.next || null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER 1 BUILDER
+// ═══════════════════════════════════════════
+function buildChapter1() {
+  const cid = 'chapter1';
+  const scenes = CH1_DATA.scenes;
+  const sceneMap = {};
+  scenes.forEach(s => sceneMap[s.id] = s);
+
+  const visited = new Set();
+  let curId = scenes[0].id;
+
+  while (curId && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = resolveImg(sc.image || sc.imageId, cid);
+    const title = sc.title || '';
+
+    if (sc.type === 'story' || sc.type === 'narration_block') {
+      pushLines(sc.lines, img, cid, title);
+    } else if (sc.type === 'choice') {
+      // pre-choice lines
+      pushLines(sc.lines, img, cid, title);
+      // choice step
+      const opts = (sc.choice?.options || []).map(o => ({
+        label: o.label,
+        score: o.score || {},
+        afterLines: o.after_lines || [],
+        afterImg: resolveImg(o.image, cid) || img,
+        inlineNextId: null
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice?.question||'', title, choices:opts });
+    }
+
+    curId = sc.next || null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER 2 BUILDER
+// ═══════════════════════════════════════════
+function buildChapter2() {
+  const cid = 'chapter2';
+  const scenes = CH2_DATA.scenes;
+
+  scenes.forEach(sc => {
+    const img = resolveImg(sc.image, cid);
+    const title = sc.title || '';
+
+    // main content
+    const contentLines = (sc.content || []).map(l => ({
+      ...l,
+      speaker: l.speaker === 'name' ? '{{name}}' : l.speaker,
+      text: typeof l.text === 'string' ? l.text.replace(/\bname\b/g,'{{name}}') : l.text
+    }));
+    pushLines(contentLines, img, cid, title);
+
+    if (sc.choices && sc.choices.length) {
+      // choices with choiceResponses
+      const opts = sc.choices.map(c => ({
+        label: c.text,
+        score: c.score ? { [c.score]: c.point||1 } : {},
+        afterLines: sc.choiceResponses ? (sc.choiceResponses[c.id] || []) : [],
+        afterImg: img,
+        mergeLines: sc.afterChoice || [],
+        mergeImg: img
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:'', title, choices:opts, hasAfterChoice:true });
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER 3 BUILDER
+// ═══════════════════════════════════════════
+function buildChapter3() {
+  const cid = 'chapter3';
+  const scenes = CH3_DATA.scenes;
+  const sceneMap = {};
+  scenes.forEach(s => sceneMap[s.id] = s);
+
+  const visited = new Set();
+  let curId = scenes[0].id;
+
+  while (curId && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = resolveImg(sc.image || sc.imageId, cid);
+    const title = sc.title || '';
+
+    if (sc.type === 'story') {
+      pushLines(sc.lines, img, cid, title);
+    } else if (sc.type === 'choice') {
+      pushLines(sc.lines, img, cid, title);
+      const opts = (sc.choice?.options || []).map(o => ({
+        label: o.label,
+        score: o.score || {},
+        afterLines: o.after_lines || [],
+        afterImg: resolveImg(o.image, cid) || img
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice?.question||'', title, choices:opts });
+    }
+
+    // マモル加入
+    if (sc.id === '3-13') {
+      // inject join banner step after scene
+      pushStep({ type:'joinBanner', chapterId:cid, imageId:img, joinKey:'マモル加入', speaker:'', text:'', title:'' });
+    }
+
+    curId = sc.next || null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER 4 BUILDER
+// ═══════════════════════════════════════════
+function buildChapter4() {
+  const cid = 'chapter4';
+  const scenes = CH4_DATA.scenes;
+  const sceneMap = {};
+  scenes.forEach(s => sceneMap[s.id] = s);
+
+  const visited = new Set();
+  let curId = scenes[0].id;
+
+  while (curId && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = resolveImg(sc.image, cid);
+    const title = sc.title || '';
+
+    if (!sc.choice) {
+      pushBlocks(sc.blocks, img, cid, title);
+    } else {
+      pushBlocks(sc.blocks, img, cid, title);
+      const opts = (sc.choice.options || []).map(o => ({
+        label: o.label,
+        score: o.score || {},
+        inlineNextId: o.next,
+        afterLines: []
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice.prompt||'', title, choices:opts, ch4SceneMap:sceneMap });
+    }
+
+    curId = sc.next || null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER 5 BUILDER
+// ═══════════════════════════════════════════
+function buildChapter5() {
+  const cid = 'chapter5';
+  const scenes = CH5_DATA.scenes;
+  const sceneMap = {};
+  scenes.forEach(s => sceneMap[s.id] = s);
+
+  const visited = new Set();
+  let curId = scenes[0].id;
+
+  while (curId && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = resolveImg(sc.image, cid);
+    const title = sc.title || '';
+
+    if (!sc.choices) {
+      pushBlocks(sc.blocks, img, cid, title);
+    } else {
+      pushBlocks(sc.blocks, img, cid, title);
+      const opts = (sc.choices || []).map(o => ({
+        label: o.label,
+        score: o.score || {},
+        inlineNextId: o.next,
+        afterLines: []
+      }));
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:'', title, choices:opts, ch5SceneMap:sceneMap });
+    }
+
+    if (sc.nextChapter === 'ending') { curId = null; break; }
+    curId = sc.next || null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// ENDING BUILDER
+// ═══════════════════════════════════════════
+function buildEnding() {
+  const cid = 'ending';
+  const data = ENDING_DATA;
+
+  data.scenes.forEach(sc => {
+    const img = resolveImg(sc.image, cid);
+    const title = sc.title || '';
+    pushLines(sc.lines, img, cid, title);
+  });
+
+  // result screen step
+  pushStep({ type:'resultScreen', imageId:'', chapterId:cid, speaker:'', text:'', title:'' });
+
+  // fin scene（5-20 Fin画面 → BGM切り替えフラグ付き）
+  if (data.finScene) {
+    const img = resolveImg(data.finScene.image, cid);
+    const finLines = data.finScene.lines || [];
+    // 最初のstepにisFin:trueをつけてBGM切り替えトリガーにする
+    finLines.forEach((l, idx) => {
+      const t = l.type || detectType(l.speaker);
+      const text = Array.isArray(l.text) ? l.text.join('\n') : (l.text||'');
+      pushStep({ type:t, imageId:img, chapterId:cid, speaker:l.speaker||'', text, title:data.finScene.title||'Fin', isFin: idx === 0 });
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// STEP DISPLAY ENGINE
+// ═══════════════════════════════════════════
+function showStep() {
+  if (stepIdx >= steps.length) { showResultScreen(); return; }
+  const step = steps[stepIdx];
+
+  updateBadge(step.chapterId);
+  updateScoreDots();
+  updateBGMForStep(step);
+
+  const type = step.type;
+
+  if (type === 'resultScreen') { showResultScreen(); return; }
+
+  if (type === 'nameInput') {
+    setImage(step.imageId, step.title);
+    showNameInput();
+    return;
+  }
+
+  if (type === 'joinBanner') {
+    showJoinBanner(step.joinKey);
+    return;
+  }
+
+  if (type === 'choice') {
+    setImage(step.imageId, step.title);
+    showChoiceStep(step);
+    return;
+  }
+
+  if (type === 'chapterTransition') {
+    setImage(step.imageId, step.title);
+    const parts = N(step.text).split('\n');
+    const chNum = parts[0] || '';
+    const chSub = parts.slice(1).join('');
+    $spk.textContent = '';
+    $txt.className = 'chtr fade-up';
+    $txt.innerHTML = `<span style="font-size:11px;letter-spacing:.38em;color:var(--gold);opacity:.85;font-family:'Noto Sans JP',sans-serif;">${chNum}</span>`
+      + (chSub ? `<br><span style="display:block;width:44px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:12px auto 10px;"></span><span style="font-size:14px;letter-spacing:.15em;">${chSub}</span>` : '');
+    $txt.style.display = '';
+    $tapHint.style.display = '';
+    return;
+  }
+
+  if (type === 'system') {
+    setImage(step.imageId, step.title);
+    const key = step.text;
+    if (key && JOIN_DATA[key]) { showJoinBanner(key); return; }
+    showDialogue('sys', '', N(step.text || ''));
+    return;
+  }
+
+  // narration / thought / dialogue
+  setImage(step.imageId, step.title);
+
+  if (type === 'narration') {
+    showDialogue('narr', '', N(step.text));
+  } else if (type === 'thought') {
+    const spk = step.speaker ? `◇ ${N(step.speaker)}` : '';
+    showDialogue('thgt', spk, N(step.text));
+  } else {
+    showDialogue('', N(step.speaker) || '', N(step.text));
+  }
+}
+
+function showDialogue(cls, speaker, text) {
+  hideChoices();
+  $spk.textContent = speaker;
+  $txt.className = cls ? `${cls} fade-up` : 'fade-up';
+  $txt.textContent = text;
+  $txt.style.display = '';
+  $tapHint.style.display = '';
+}
+
+function hideChoices() {
+  $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
+  $choices.classList.remove('show');
+}
+
+// ═══════════════════════════════════════════
+// CHOICE DISPLAY
+// ═══════════════════════════════════════════
+function showChoiceStep(step) {
+  waitingChoice = true;
+  $spk.textContent = '';
+  $txt.style.display = 'none';
+  $tapHint.style.display = 'none';
+
+  $choices.innerHTML = '<div class="choice-lbl">— どう声をかける？ —</div>';
+  (step.choices || []).forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'cbtn';
+    btn.textContent = N(c.label);
+    btn.onclick = e => { e.stopPropagation(); selectChoice(step, c); };
+    $choices.appendChild(btn);
+  });
+  $choices.classList.add('show');
+}
+
+function selectChoice(step, choice) {
+  waitingChoice = false;
+  hideChoices();
+  $txt.style.display = '';
+  $tapHint.style.display = '';
+
+  // score
+  const sc = choice.score || {};
+  for (const [k,v] of Object.entries(sc)) {
+    if (scores[k] !== undefined) {
+      scores[k] += (v || 1);
+      lastScore = k;
+    }
+  }
+  updateScoreDots();
+
+  // Build inline steps to inject
+  const inject = [];
+  const cid = step.chapterId;
+
+  // Chapter 1 / 3 style: afterLines + merge to next
+  if (choice.afterLines && choice.afterLines.length) {
+    const img = choice.afterImg || step.imageId;
+    choice.afterLines.forEach(l => {
+      const t = l.type || detectType(l.speaker);
+      const text = Array.isArray(l.text) ? l.text.join('\n') : (l.text||'');
+      inject.push({ type:t, imageId:img, chapterId:cid, speaker:l.speaker||'', text, title:'' });
+    });
+  }
+
+  // Chapter 2 style: choiceResponses afterLines + mergeLines (afterChoice)
+  if (choice.mergeLines && choice.mergeLines.length) {
+    const img = choice.mergeImg || step.imageId;
+    choice.mergeLines.forEach(l => {
+      const t = l.type || detectType(l.speaker);
+      const text = Array.isArray(l.text) ? l.text.join('\n') : (l.text||'');
+      inject.push({ type:t, imageId:img, chapterId:cid, speaker:l.speaker||'', text, title:'' });
+    });
+  }
+
+  // Prologue style: choiceMap
+  if (step.choiceMap && step.choiceMap[choice.label]) {
+    step.choiceMap[choice.label].forEach(s => inject.push(s));
+  }
+
+  // Prologue pages形式: prologueSceneMap
+  if (choice.inlineNextId && step.prologueSceneMap) {
+    const branchSteps = collectPrologueBranch(choice.inlineNextId, step.prologueSceneMap, cid);
+    branchSteps.forEach(s => inject.push(s));
+  // Chapter 4/5 style: inlineNextId (jump to scene and continue)
+  } else if (choice.inlineNextId) {
+    const sceneMap = step.ch4SceneMap || step.ch5SceneMap;
+    if (sceneMap) {
+      const branchSteps = collectBranchSteps(choice.inlineNextId, sceneMap, cid);
+      branchSteps.forEach(s => inject.push(s));
+    }
+  }
+
+  // inject steps after current
+  if (inject.length) {
+    steps.splice(stepIdx + 1, 0, ...inject);
+  }
+
+  stepIdx++;
+  saveProgress();
+  showStep();
+}
+
+function collectPrologueBranch(startId, sceneMap, cid) {
+  const result = [];
+  const visited = new Set();
+  let curId = startId;
+  const MERGE = 'prologue-p12'; // 合流点
+
+  while (curId && curId !== MERGE && curId !== 'chapter1' && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = sc.imageId && sc.imageId.includes('.png') ? sc.imageId : resolveImg(sc.imageId, cid);
+    const spk = sc.speaker || '';
+
+    (sc.pages || []).forEach(page => {
+      const lines = Array.isArray(page) ? page : [page];
+      let speaker = spk;
+      let textLines = lines;
+
+      if (lines.length > 0 && lines[0].includes('\n')) {
+        const parts = lines[0].split('\n');
+        speaker = parts[0];
+        textLines = [parts.slice(1).join('\n'), ...lines.slice(1)];
+      } else if (lines.length >= 2) {
+        const possibleSpeaker = lines[0];
+        if (['じょりぃ','イブキ','コトハ','マモル','おじいちゃん'].some(s => possibleSpeaker.includes(s)) || possibleSpeaker.includes('{{name}}')) {
+          speaker = possibleSpeaker;
+          textLines = lines.slice(1);
+        }
+      }
+
+      const isThought = speaker.includes('心の声') || speaker.includes('（心の声）');
+      const type = isThought ? 'thought' : (speaker ? 'dialogue' : 'narration');
+      result.push({ type, imageId:img, chapterId:cid, speaker:N(speaker), text:N(textLines.join('\n')), title:'' });
+    });
+
+    curId = sc.next || null;
+  }
+  return result;
+}
+
+function collectBranchSteps(startId, sceneMap, cid) {
+  const result = [];
+  const visited = new Set();
+  let curId = startId;
+
+  while (curId && !visited.has(curId)) {
+    visited.add(curId);
+    const sc = sceneMap[curId];
+    if (!sc) break;
+
+    const img = resolveImg(sc.image || sc.imageId, cid);
+    const title = sc.title || '';
+    const blocks = sc.blocks || sc.lines || [];
+
+    blocks.forEach(b => {
+      const isSpeaker = b.speaker && b.speaker !== '—';
+      const t = !isSpeaker ? (b.type === 'narration' ? 'narration' : detectType(b.speaker))
+        : b.speaker.includes('心の声') ? 'thought' : 'dialogue';
+      const text = Array.isArray(b.text) ? b.text.join('\n') : (b.text||'');
+      result.push({ type:t, imageId:img, chapterId:cid, speaker:b.speaker||'', text, title });
+    });
+
+    if (sc.choices || sc.choice) {
+      const choiceData = sc.choices || sc.choice?.options;
+      const prompt = sc.choice?.question || sc.choice?.prompt || '';
+      const opts = (choiceData || []).map(o => ({
+        label: o.label,
+        score: o.score || {},
+        inlineNextId: o.next,
+        afterLines: o.after_lines || []
+      }));
+      result.push({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:prompt, title, choices:opts,
+        ch4SceneMap: sceneMap, ch5SceneMap: sceneMap });
+      break;
+    }
+
+    curId = sc.next || null;
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════
+// TAP HANDLER
+// ═══════════════════════════════════════════
+function handleTap() {
+  if (waitingChoice || waitingName || waitingJoin) return;
+  stepIdx++;
+  saveProgress();
+  showStep();
+}
+
+// ═══════════════════════════════════════════
+// NAME INPUT
+// ═══════════════════════════════════════════
+function showNameInput() {
+  waitingName = true;
+  document.getElementById('name-input-overlay').classList.add('show');
+  document.getElementById('name-input').focus();
+}
+
+function submitName() {
+  const val = document.getElementById('name-input').value.trim();
+  playerName = val || 'ゆわ';
+  document.getElementById('name-input-overlay').classList.remove('show');
+  waitingName = false;
+  stepIdx++;
+  saveProgress();
+  showStep();
+}
+
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitName();
+});
+
+// ═══════════════════════════════════════════
+// JOIN BANNER
+// ═══════════════════════════════════════════
+function showJoinBanner(key) {
+  waitingJoin = true;
+  const d = JOIN_DATA[key] || { icon:'✨', name:key, sub:'' };
+  document.getElementById('j-icon').textContent = d.icon;
+  document.getElementById('j-name').textContent = d.name;
+  document.getElementById('j-sub').textContent = d.sub;
+  document.getElementById('join-banner').classList.add('show');
+}
+
+function dismissJoin() {
+  document.getElementById('join-banner').classList.remove('show');
+  waitingJoin = false;
+  stepIdx++;
+  saveProgress();
+  showStep();
+}
+
+// ═══════════════════════════════════════════
+// IMAGE
+// ═══════════════════════════════════════════
+function setImage(imgId, title) {
+  $stitle.textContent = title || '';
+  $phTxt.textContent = title || '';
+  if (!imgId) { $imgWrap.classList.add('no-img'); return; }
+  $imgWrap.classList.add('no-img'); // show placeholder until loaded
+  $img.src = imgId;
+}
+function imgErr() { $imgWrap.classList.add('no-img'); }
+function imgOk()  { $imgWrap.classList.remove('no-img'); }
+
+// ═══════════════════════════════════════════
+// BADGES / DOTS
+// ═══════════════════════════════════════════
+function updateBadge(cid) {
+  $badge.textContent = CHAPTER_LABELS[cid] || '';
+}
+
+function updateScoreDots() {
+  ['light','moon','fire','deep'].forEach(t => {
+    document.getElementById(`d-${t}`).classList.toggle('on', scores[t] > 0);
+  });
+}
+
+// ═══════════════════════════════════════════
+// RESULT SCREEN
+// ═══════════════════════════════════════════
+function getWinner() {
+  let max = -1, winner = lastScore || 'light';
+  for (const [t,v] of Object.entries(scores)) {
+    if (v > max) { max = v; winner = t; }
+    else if (v === max && lastScore === t) winner = t;
+  }
+  return winner;
+}
+
+function showResultScreen() {
+  fadeTransition(() => {
+    document.getElementById('game-screen').classList.remove('active');
+    const $rs = document.getElementById('result-screen');
+    $rs.classList.add('active');
+    playBGM('ending'); // 結果画面もendingBGM継続
+
+    const winner = getWinner();
+    const typeInfo = SCORE_TYPES[winner];
+    const endData = ENDING_DATA.resultScreen;
+
+    // Find matching type result
+    const typeResult = endData.types.find(t => ENDING_SCORE_MAP[t.typeId] === winner);
+
+    document.getElementById('rs-icon').textContent = typeInfo.icon;
+    document.getElementById('rs-typename').textContent = typeResult ? typeResult.title : typeInfo.name;
+    document.getElementById('rs-text').textContent = typeResult ? N(typeResult.text.join('\n')) : '';
+
+    // scores
+    const $sc = document.getElementById('rs-scores');
+    $sc.innerHTML = '';
+    for (const [t,v] of Object.entries(scores)) {
+      const p = document.createElement('div');
+      p.className = 'rs-pill' + (t === winner ? ' win' : '');
+      p.textContent = `${SCORE_TYPES[t].icon} ${v}pt`;
+      $sc.appendChild(p);
+    }
+
+    // common result
+    const cr = endData.commonResult;
+    document.getElementById('rs-ctitle').textContent = cr.resultName || cr.title;
+    document.getElementById('rs-ctext').textContent = N(cr.text.join('\n'));
+  });
+}
+
+// ═══════════════════════════════════════════
+// TRANSITION
+// ═══════════════════════════════════════════
+function fadeTransition(cb) {
+  $ov.classList.add('on');
+  setTimeout(() => { cb(); setTimeout(() => $ov.classList.remove('on'), 80); }, 420);
+}
+
+// ═══════════════════════════════════════════
+// CHAPTER DATA
+// ═══════════════════════════════════════════
+
+// ── PROLOGUE ──
+const PROLOGUE_DATA = {
+  scenes: [
+    // p-0
+    { id:"prologue-p0", type:"narrationBlock", imageId:"p-0", pages:[
+      ["太古より——","この世界には","光と影が宿ると言われてきた。"],
+      ["光はあたたかく、人の心に宿り、","誰かを癒やし、","前へと進む力となる。"],
+      ["しかし影もまた、","等しく人の中に","生きている。"]
+    ], next:"prologue-p1"},
+    // p-1
+    { id:"prologue-p1", type:"narrationBlock", imageId:"p-1", pages:[
+      ["「どうせ無理」","「また失敗する」","「私なんて——」"],
+      ["それは本来、","小さな囁きに","すぎなかった。"],
+      ["だが——","誰かのために走り続けるうちに、","自分を後回しにし続けるうちに——"],
+      ["その影は、静かに、","しかし確実に","育っていった。"]
+    ], next:"prologue-p2"},
+    // p-2
+    { id:"prologue-p2", type:"narrationBlock", imageId:"p-2", pages:[
+      ["気づいた時には、","もう遅かった。"],
+      ["影は——","魔王となっていた。"],
+      ["けれど、影は悪そのものではない。"],
+      ["影は、","置き去りにされた心の声。"],
+      ["言えなかった本音。","飲み込んだ涙。","傷ついたままの気持ち。"],
+      ["「迷惑をかけちゃだめ」","「本当の気持ちを言っちゃだめ」","「ひとりで頑張らなきゃ」"],
+      ["「泣いてはいけない」","「弱音を吐いてはいけない」"],
+      ["そんな声が、長い時間をかけて、","心の奥で","影になっていく。"],
+      ["そして影は、ときに","人を傷つける魔物になる。"],
+      ["けれど本当は——","誰かに気づいてほしかった、","心の声だった。"]
+    ], next:"prologue-p3"},
+    // p-3
+    { id:"prologue-p3", type:"dialogueBlock", imageId:"p-3", speaker:"妖精じょりぃ", pages:[
+      ["……ねえ。"],
+      ["その光、","ほんとうに消えちゃったと思ってる？"],
+      ["あ、びっくりした？","ごめんごめん。","急に出るタイプの妖精でして。"],
+      ["でもね、ちゃんと聞いてほしいの。"],
+      ["これから始まるのは、","誰かの昔話じゃない。"],
+      ["これは、あなたの中に","まだ残っている光を","探す物語。"]
+    ], next:"prologue-p4"},
+    // p-4 名前入力
+    { id:"prologue-p4", type:"nameInput", imageId:"p-4", speaker:"妖精じょりぃ",
+      text:["だから最初に、教えて。","あなたの名前を。"],
+      prompt:"名前を入力してください", next:"prologue-p5"},
+    // p-5
+    { id:"prologue-p5", type:"dialogueBlock", imageId:"p-5", speaker:"妖精じょりぃ", pages:[
+      ["{{name}}。"],
+      ["うん。いい名前。","なんだか、光の音がする。"],
+      ["あらためまして。","ぼくは、じょりぃ。"],
+      ["{{name}}を、ずっと見守ってきた妖精だよ。"],
+      ["……って言うと、","ちょっとかっこいいでしょ。"],
+      ["でも本当は、","こっそり見守る係だったんだけどね。"],
+      ["{{name}}のおじいちゃんに、","頼まれていたんだ。"]
+    ], next:"prologue-p6"},
+    // p-6
+    { id:"prologue-p6", type:"narrationBlock", imageId:"p-6", pages:[
+      ["{{name}}のおじいちゃんは、","伝説のヒーラーだった。"],
+      ["幼いころの{{name}}は、","いつもその背中を","見上げていた。"]
+    ], next:"prologue-p7"},
+    // p-7
+    { id:"prologue-p7", type:"narrationBlock", imageId:"p-7", pages:[
+      ["病を治し、","傷を癒やし、","心を救った。"],
+      ["おじいちゃんは、","見返りのために","誰かを癒やしたわけではなかった。"],
+      ["ただ、目の前の痛みに","誠実だった。"],
+      ["苦しむ人のそばに座り、","急がせず、否定せず、","静かに寄り添う人だった。"]
+    ], next:"prologue-p8"},
+    // p-8
+    { id:"prologue-p8", type:"narrationBlock", imageId:"p-8", pages:[
+      ["ヒーラーの道を歩むと伝えたあの日——"],
+      ["おじいちゃんは静かに微笑んで言った。"],
+      ["「{{name}}なら、行ける。」"]
+    ], next:"prologue-p9"},
+    // p-9
+    { id:"prologue-p9", type:"narrationBlock", imageId:"p-9", pages:[
+      ["夜空を見上げながら、","{{name}}は胸に手をあてた。"],
+      ["おじいちゃんが灯していた、","あのやさしい光。"],
+      ["それは今も、","{{name}}の中に","静かに息づいている気がした。"]
+    ], next:"prologue-p10"},
+    // p-10
+    { id:"prologue-p10", type:"narrationBlock", imageId:"p-10", pages:[
+      ["{{name}}は、ずっと走り回っていた。"],
+      ["誰かの痛みに気づき、","誰かを癒やし、","誰かを支えるために。"],
+      ["疲れても、","自分に回復をかけて。","それが当たり前になっていた。"],
+      ["{{name}}（心の声）\n私も、誰かのために頑張らなきゃ。"],
+      ["{{name}}（心の声）\n私が支えなきゃ。"],
+      ["{{name}}（心の声）\n自分のことは、あとでいい。"],
+      ["誰かを癒やすことばかりで、","{{name}}は、","自分を癒やすことを忘れていた。"]
+    ], next:"prologue-p11"},
+    // p-11 選択肢
+    { id:"prologue-p11", type:"choice", imageId:"p-11",
+      speaker:"じょりぃ",
+      text:["ねえ、{{name}}。","最後に自分のために泣いたのって、","いつだっけ？"],
+      choices:[
+        { id:"light", label:"泣くより、前に進まなきゃって思ってた", effects:{light:1}, next:"prologue-p11-light"},
+        { id:"moon",  label:"いつから泣いてないのか、思い出せない",  effects:{moon:1},  next:"prologue-p11-moon"},
+        { id:"fire",  label:"本当は、ずっと泣きたかった",            effects:{fire:1},  next:"prologue-p11-fire"},
+        { id:"deep",  label:"泣いたら、自分の奥が壊れそうで怖かった", effects:{deep:1},  next:"prologue-p11-deep"}
+      ]
+    },
+    // p-11 分岐
+    { id:"prologue-p11-light", type:"dialogueBlock", imageId:"p-11", speaker:"{{name}}", pages:[
+      ["泣くより、前に進まなきゃって思ってた。"],
+      ["じょりぃ\nそっか。"],
+      ["じょりぃ\n{{name}}は、止まるより進むことを\n選んできたんだね。"],
+      ["じょりぃ\nでも、立ち止まることも\n負けじゃないよ。"]
+    ], next:"prologue-p12"},
+    { id:"prologue-p11-moon", type:"dialogueBlock", imageId:"p-11", speaker:"{{name}}", pages:[
+      ["いつから泣いてないのか、思い出せない。"],
+      ["じょりぃ\n思い出せないくらい、"],
+      ["じょりぃ\nずっと自分を後回しに\nしてきたんだね。"],
+      ["じょりぃ\n泣かないことが、\n当たり前になってたんだ。"]
+    ], next:"prologue-p12"},
+    { id:"prologue-p11-fire", type:"dialogueBlock", imageId:"p-11", speaker:"{{name}}", pages:[
+      ["本当は、ずっと泣きたかった。"],
+      ["じょりぃ\nうん。"],
+      ["じょりぃ\n泣きたかったんだよね。"],
+      ["じょりぃ\nずっと、がんばってたんだよね。"]
+    ], next:"prologue-p12"},
+    { id:"prologue-p11-deep", type:"dialogueBlock", imageId:"p-11", speaker:"{{name}}", pages:[
+      ["泣いたら、自分の奥が壊れそうで怖かった。"],
+      ["じょりぃ\n壊れそうなくらい、"],
+      ["じょりぃ\n大事なものを\n抱えてきたんだね。"],
+      ["じょりぃ\n怖かったんだね、{{name}}。"]
+    ], next:"prologue-p12"},
+    // p-12 共通合流
+    { id:"prologue-p12", type:"dialogueBlock", imageId:"p-12", speaker:"じょりぃ", pages:[
+      ["この旅はね、","影を消す旅じゃないよ。"],
+      ["影の奥にある声を、","ちゃんと聞きにいく旅。"],
+      ["それから——"],
+      ["{{name}}が忘れてしまった光を、","もう一度、見つけにいく旅。"],
+      ["{{name}}（心の声）\n私の中に、まだ光があるのかな。"],
+      ["答えは、まだわからない。"],
+      ["けれど——"],
+      ["{{name}}\n……怖い。"],
+      ["{{name}}\nでも、行く。"],
+      ["{{name}}\n放っておけない。"],
+      ["じょりぃ\nうん。"],
+      ["じょりぃ\nそれでこそ{{name}}だよ。"],
+      ["じょりぃ\nでも今度は忘れないでね。"],
+      ["じょりぃ\n誰かを助けるために、","{{name}}自身を置いていかないこと。"]
+    ], next:"prologue-p13"},
+    // p-13
+    { id:"prologue-p13", type:"dialogueBlock", imageId:"p-13", speaker:"じょりぃ", pages:[
+      ["さあ、旅の始まりだよ！"],
+      ["まずはあの草原を抜けよう！"],
+      ["こうして{{name}}は、","自分の光を取り戻す旅へ出た。"]
+    ], next:"prologue-p14"},
+    // p-14 → 第1章へ
+    { id:"prologue-p14", type:"narrationBlock", imageId:"1-1.png", pages:[
+      ["草原を抜けると、","目の前に大きな森が広がっていた。"],
+      ["じょりぃ\nこの先だよ、{{name}}。"],
+      ["その時——"],
+      ["森の奥から、","かすかに何かがぶつかる音が聞こえた。"],
+      ["{{name}}（心の声）\n……今の音は？"]
+    ], endCard:{ title:"第1章", subtitle:"ひとりで戦う剣士と、光の盾へ" }, next:"chapter1"}
+  ]
+};
+
+// ── CHAPTER 1 (simplified inline) ──
+const CH1_DATA = {scenes:[
+  {id:"1-1",type:"story",image:"1-1.png",title:"森の戦場",lines:[
+    {type:"narration",text:"森の奥へ踏み込むと、戦いの音がすぐそこまで迫っていた。"},
+    {type:"narration",text:"黒いもやが木々に絡みつき、地面を這う。その中心で、一人の剣士が影と向き合っていた。"},
+    {type:"dialogue",speaker:"剣士",text:"……来るな。ここは俺が片付ける。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"一人で全部背負おうとしている。あの人の光が、消えそうだ。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、あの人を助けたい？"},
+    {type:"dialogue",speaker:"{{name}}",text:"……うん。"}
+  ],next:"1-choice"},
+  {id:"1-choice",type:"choice",image:"1-1.png",title:"どうする？",lines:[],
+    choice:{question:"あなたはどうする？",options:[
+      {label:"すぐ前に出て、剣士を助ける",score:{light:1},image:"1-2.png",after_lines:[
+        {type:"narration",text:"{{name}}は迷わず前へ出た。"},
+        {type:"dialogue",speaker:"{{name}}",text:"一人じゃなくていい。私もいる。"},
+        {type:"dialogue",speaker:"剣士",text:"……お前は？"}
+      ]},
+      {label:"影の動きをよく見てから動く",score:{moon:1},image:"1-2.png",after_lines:[
+        {type:"narration",text:"{{name}}は一歩引いて、影の動きを観察した。"},
+        {type:"dialogue",speaker:"{{name}}（心の声）",text:"焦らない。影の弱点を見つけてから動こう。"},
+        {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、何か見えた？"}
+      ]},
+      {label:"剣士の心の傷が気になる",score:{fire:1},image:"1-2.png",after_lines:[
+        {type:"narration",text:"{{name}}は剣士の背中を見つめた。"},
+        {type:"dialogue",speaker:"{{name}}（心の声）",text:"戦っているのに、どこかとても苦しそう。"},
+        {type:"dialogue",speaker:"{{name}}",text:"あなた……ずっとひとりで戦ってきたの？"}
+      ]},
+      {label:"影の奥にある悲しみを感じ取る",score:{deep:1},image:"1-2.png",after_lines:[
+        {type:"narration",text:"{{name}}は影の奥に意識を向けた。"},
+        {type:"dialogue",speaker:"{{name}}（心の声）",text:"この影は、ただ悪いものじゃない。何か、深い悲しみがある。"},
+        {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、影の奥に何かいる？"}
+      ]}
+    ]},next:"1-2"},
+  {id:"1-2",type:"story",image:"1-3.png",title:"剣士との出会い",lines:[
+    {type:"narration",text:"{{name}}の光が、影の黒いもやを少しずつほどいていく。"},
+    {type:"dialogue",speaker:"剣士",text:"……なぜ助けた。俺は一人でいい。"},
+    {type:"dialogue",speaker:"{{name}}",text:"一人でいいなんて、思ってないでしょ。"},
+    {type:"dialogue",speaker:"剣士",text:"……"},
+    {type:"dialogue",speaker:"じょりぃ",text:"この人、強がりさんだね。"},
+    {type:"dialogue",speaker:"剣士",text:"犬が喋った。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"犬じゃないもん！妖精！！"},
+    {type:"narration",text:"影が浄化されると、剣士はようやく{{name}}を見た。"},
+    {type:"dialogue",speaker:"剣士",text:"……イブキだ。名前だけ教えてやる。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"イブキ！いい名前だね。この子は{{name}}。一緒に旅してかない？"},
+    {type:"dialogue",speaker:"イブキ",text:"……好きにしろ。"},
+    {type:"system",text:"イブキ加入"}
+  ],next:null}
+]};
+
+// ── CHAPTER 2 ──
+const CH2_DATA = {
+  scoreTypes:{light:"光の先導者",moon:"静寂の観察者",fire:"炎の共感者",deep:"深淵の癒し手"},
+  scenes:[
+    {id:"scene_1",title:"霧の森へ",image:"2-1.png",content:[
+      {type:"narration",text:"第1章の戦いを終えたあと、じょりぃが広げた光の地図には、新しい道が浮かび上がっていた。"},
+      {type:"narration",text:"その光をたどって進んだ先は、白い霧に包まれた、静かな森だった。"},
+      {type:"narration",text:"木々の間を抜ける風は冷たく、どこか遠くで、誰かのため息のような音がした。"},
+      {type:"thought",speaker:"name",text:"何かが、ここから始まる気がした。少し怖い。胸の奥がざわざわする。"},
+      {type:"thought",speaker:"name",text:"でも――私は、もう一人じゃない。隣にはじょりぃがいて、前にはイブキがいる。だから進める。怖くても、一歩なら進める。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"この先だよ。忘れられた神殿……光の地図が、そう言ってる"},
+      {type:"dialogue",speaker:"イブキ",text:"空気が妙だな。魔物の気配とも少し違う……"},
+      {type:"dialogue",speaker:"name",text:"うん……。なんだろう、この感じ。胸の奥が、少し痛むような……"},
+      {type:"dialogue",speaker:"じょりぃ",text:"ここにはね、言えなかった気持ちが残ってるみたい"},
+      {type:"narration",text:"少し沈黙が落ちる。霧の向こうには、まだ見えない何かが待っていた。"}
+    ]},
+    {id:"scene_2",title:"神殿を前にして",image:"2-2.png",content:[
+      {type:"narration",text:"森を抜けると、霧の向こうに古い神殿が見えた。白くかすんだ石造りの建物。長い間、人の足が遠のいていたような静けさがあった。"},
+      {type:"dialogue",speaker:"イブキ",text:"……あれが神殿か"},
+      {type:"dialogue",speaker:"じょりぃ",text:"うん。でも、ただの神殿じゃない。ここは「忘れられた言葉」が眠る場所"},
+      {type:"thought",speaker:"name",text:"忘れられた言葉。そんなもの、私の中にもあるんだろうか。忘れたんじゃなくて、ただ奥にしまっただけの気持ちが。"}
+    ],choices:[
+      {id:"choice_2_1",text:"行こう。怖くても、止まりたくない",score:"light",point:1},
+      {id:"choice_2_2",text:"気をつけて進もう。何か仕掛けがあるかもしれない",score:"moon",point:1},
+      {id:"choice_2_3",text:"ここに残ってる誰かの気持ちを、放っておけない",score:"fire",point:1},
+      {id:"choice_2_4",text:"この場所は、心の奥に触れてくる気がする……慎重にいこう",score:"deep",point:1}
+    ],afterChoice:[
+      {type:"dialogue",speaker:"イブキ",text:"よし。気を抜くなよ"},
+      {type:"dialogue",speaker:"じょりぃ",text:"うん。きっと、この場所には意味があるよ"},
+      {type:"narration",text:"一行は、霧の向こうの神殿へと足を進めた。"}
+    ]},
+    {id:"scene_3",title:"神殿の入口で聞こえた声",image:"2-3.png",content:[
+      {type:"narration",text:"神殿の入口に近づくにつれ、霧はさらに濃くなっていく。崩れた柱、ひび割れた石畳。誰もいないはずなのに、かすかな声だけが聞こえた。"},
+      {type:"dialogue",speaker:"？？？",text:"……私は、大丈夫です"},
+      {type:"dialogue",speaker:"？？？",text:"平気です……"},
+      {type:"dialogue",speaker:"？？？",text:"だから……心配しないで……"},
+      {type:"thought",speaker:"name",text:"その声を聞いた瞬間、胸がきゅっと痛んだ。知らない声のはずなのに、どこかで聞いたことがある気がした。"},
+      {type:"thought",speaker:"name",text:"それは、昔の自分の声に似ていた。本当は助けてほしかったのに。本当は怖かったのに。それでも笑って言った、「大丈夫」。"},
+      {type:"dialogue",speaker:"イブキ",text:"誰かいるな"},
+      {type:"dialogue",speaker:"じょりぃ",text:"うん……でも、この声。無理してる"},
+      {type:"dialogue",speaker:"name",text:"行ってみよう"}
+    ]},
+    {id:"scene_4",title:"魔法使いとの出会い",image:"2-4.png",content:[
+      {type:"narration",text:"霧の向こうから、ひとりの少女が現れた。長い杖を手にした、静かな雰囲気の魔法使いだった。"},
+      {type:"dialogue",speaker:"魔法使い",text:"……ここへは近づかないほうがいいです"},
+      {type:"dialogue",speaker:"イブキ",text:"お前、こんなところで何をしてる？"},
+      {type:"dialogue",speaker:"魔法使い",text:"問題ありません。私は、平気ですから"},
+      {type:"dialogue",speaker:"じょりぃ",text:"……この人の声、泣いてる"},
+      {type:"thought",speaker:"name",text:"綺麗に微笑んでいる。落ち着いていて、しっかりしていて、誰にも迷惑をかけないように見える人。"},
+      {type:"thought",speaker:"name",text:"でも、じょりぃは言った。「この人の声、泣いてる」って。私は――ちゃんと聞けるヒーラーになれるだろうか。笑顔の奥にある、本当の声を。"},
+      {type:"dialogue",speaker:"name",text:"あなたの名前を聞いてもいい？"},
+      {type:"narration",text:"魔法使いは少しだけ迷ったあと、静かに答えた。"},
+      {type:"dialogue",speaker:"魔法使い",text:"……コトハです。言葉の魔法を使っています"},
+      {type:"dialogue",speaker:"じょりぃ",text:"コトハだね。この子はname。ヒーラーの道を進んでるんだよ"},
+      {type:"dialogue",speaker:"じょりぃ",text:"そして僕はじょりぃ。nameを見守る、とっても頼れる妖精！"},
+      {type:"dialogue",speaker:"イブキ",text:"自分で言うな"},
+      {type:"dialogue",speaker:"じょりぃ",text:"それで、こっちがイブキ。強がりだけど、いい人だよ！"},
+      {type:"dialogue",speaker:"イブキ",text:"なんだと？"},
+      {type:"dialogue",speaker:"じょりぃ",text:"あ、つい本音が"},
+      {type:"dialogue",speaker:"イブキ",text:"犬のくせに生意気な"},
+      {type:"dialogue",speaker:"じょりぃ",text:"違うもん！妖精だもん！"},
+      {type:"dialogue",speaker:"イブキ",text:"犬の妖精のくせに、生意気な"},
+      {type:"dialogue",speaker:"じょりぃ",text:"犬じゃないもんーーー！"},
+      {type:"narration",text:"思わず、nameの口元が少しゆるむ。重たかった霧の中に、ほんの少しだけ温かい空気が流れた。"},
+      {type:"narration",text:"けれど、コトハだけはまだ、どこか遠くを見ていた。"}
+    ],choices:[
+      {id:"choice_4_1",text:"ここは危ないから、一緒に行こう",score:"light",point:1},
+      {id:"choice_4_2",text:"どうして一人でここにいるの？",score:"moon",point:1},
+      {id:"choice_4_3",text:"無理してない？ 声が少し震えてる",score:"fire",point:1},
+      {id:"choice_4_4",text:"「平気」って言葉で、自分を守ってるように聞こえる",score:"deep",point:1}
+    ],choiceResponses:{
+      choice_4_1:[
+        {type:"dialogue",speaker:"name",text:"ここは危ないから、一緒に行こう"},
+        {type:"dialogue",speaker:"コトハ",text:"……一緒に？"},
+        {type:"narration",text:"少しだけ、コトハの表情が揺れる。"},
+        {type:"dialogue",speaker:"コトハ",text:"そう言われたのは、久しぶりです"},
+        {type:"narration",text:"けれどすぐに、コトハはいつものように微笑んだ。"},
+        {type:"dialogue",speaker:"コトハ",text:"でも、大丈夫です。ありがとうございます"}
+      ],
+      choice_4_2:[
+        {type:"dialogue",speaker:"name",text:"どうして一人でここにいるの？"},
+        {type:"dialogue",speaker:"コトハ",text:"調べたいことがあって……。ただ、それだけです"},
+        {type:"narration",text:"答えながらも、コトハの視線は少し泳いでいた。"},
+        {type:"dialogue",speaker:"じょりぃ",text:"でも……ここ、一人でいるには危ないよ"},
+        {type:"dialogue",speaker:"コトハ",text:"でも、大丈夫です。ありがとうございます"}
+      ],
+      choice_4_3:[
+        {type:"dialogue",speaker:"name",text:"無理してない？ 声が少し震えてる"},
+        {type:"dialogue",speaker:"コトハ",text:"え……"},
+        {type:"narration",text:"一瞬、コトハの表情が崩れる。けれど、すぐに口元だけで笑った。"},
+        {type:"dialogue",speaker:"コトハ",text:"……お気遣い、ありがとうございます。でも、大丈夫です"}
+      ],
+      choice_4_4:[
+        {type:"dialogue",speaker:"name",text:"「平気」って言葉で、自分を守ってるように聞こえる"},
+        {type:"dialogue",speaker:"コトハ",text:"……っ"},
+        {type:"narration",text:"その言葉に、コトハは小さく息をのんだ。何かを言いかけて、でも飲み込む。"},
+        {type:"dialogue",speaker:"コトハ",text:"……ありがとうございます。でも、大丈夫です"}
+      ]
+    },afterChoice:[
+      {type:"narration",text:"その瞬間、神殿の奥から白い霧がふわりと広がった。"},
+      {type:"dialogue",speaker:"影の声",text:"また言うのか。大丈夫、と"},
+      {type:"dialogue",speaker:"コトハ",text:"……！"},
+      {type:"dialogue",speaker:"じょりぃ",text:"今の声……神殿の奥からだよ"},
+      {type:"dialogue",speaker:"イブキ",text:"やっぱり、ただの神殿じゃなさそうだな"},
+      {type:"system",text:"コトハ加入"}
+    ]}
+  ]
+};
+
+// ── CHAPTER 3 ──
+const CH3_DATA = {scenes:[
+  {id:"3-1",image:"3-1.png",type:"story",title:"嘆きの谷へ",lines:[
+    {speaker:"narration",text:"忘れられた神殿をあとにした{{name}}たちは、静かな森の小道を進んでいた。"},
+    {speaker:"narration",text:"コトハが仲間に加わり、旅の空気は少しだけやわらかくなっていた。"},
+    {speaker:"{{name}}（心の声）",text:"言葉にしてもいい。そう知ったはずなのに……。"},
+    {speaker:"{{name}}（心の声）",text:"まだ、心の奥に触れていない場所がある気がする。"},
+    {speaker:"narration",text:"その時、{{name}}の持つ光の地図が、ふわりと淡く光った。"},
+    {speaker:"じょりぃ",text:"あっ！地図さん、また光ってる！"},
+    {speaker:"イブキ",text:"次の場所か。"},
+    {speaker:"コトハ",text:"……嘆きの谷。"},
+    {speaker:"じょりぃ",text:"名前からして、ぜんぜんピクニック向きじゃないね。"},
+    {speaker:"イブキ",text:"誰もピクニックに行くとは言ってない。"},
+    {speaker:"じょりぃ",text:"えー。じょりぃ、そろそろおやつ休憩でもいいと思ってたのに。"},
+    {speaker:"narration",text:"地図の上に、深い谷の形が浮かび上がる。その光は、あたたかいはずなのに、どこか胸を締めつけるようだった。"},
+    {speaker:"{{name}}（心の声）",text:"どうしてだろう。まだ行ってもいないのに、泣きたいような気持ちになる。"},
+    {speaker:"じょりぃ",text:"{{name}}、大丈夫？"},
+    {speaker:"{{name}}",text:"……うん。大丈夫。"},
+    {speaker:"じょりぃ",text:"その「大丈夫」、ほんと？"},
+    {speaker:"{{name}}（心の声）",text:"ほんと、なのかな。私はまた、いつものくせで言っただけなのかな。"}
+  ],next:"3-2"},
+  {id:"3-2",image:"3-2.png",type:"story",title:"谷への道",lines:[
+    {speaker:"narration",text:"嘆きの谷へ向かう道は、だんだんと暗く、細くなっていった。"},
+    {speaker:"コトハ",text:"この道……言葉が少ないね。"},
+    {speaker:"イブキ",text:"言葉が少ない？"},
+    {speaker:"コトハ",text:"うん。誰かが何かを言おうとして、飲み込んだ跡がある。"},
+    {speaker:"じょりぃ",text:"飲み込んだ言葉って、お腹痛くなりそう。"},
+    {speaker:"イブキ",text:"お前は何でも腹に結びつけるな。"},
+    {speaker:"{{name}}（心の声）",text:"じょりぃも、感じてるんだ。この先にある、重たい何かを。"}
+  ],next:"3-3"},
+  {id:"3-3",image:"3-3.png",type:"story",title:"嘆きの谷",lines:[
+    {speaker:"narration",text:"やがて、{{name}}たちは深い谷の入口にたどり着いた。"},
+    {speaker:"narration",text:"谷には白い霧がかかり、底は見えない。風が岩肌をすり抜けるたび、誰かの泣き声のような音が響いた。"},
+    {speaker:"イブキ",text:"……嫌な場所だな。"},
+    {speaker:"コトハ",text:"ここには、言葉にならなかった悲しみが残ってる。"},
+    {speaker:"じょりぃ",text:"風さん、もうちょっと可愛い音出せない？ぴゅーじゃなくて、ぴよぴよとか。"},
+    {speaker:"イブキ",text:"谷に無茶を言うな。"},
+    {speaker:"{{name}}（心の声）",text:"この風、知ってる。"},
+    {speaker:"{{name}}（心の声）",text:"誰にも聞こえないように、心の奥で泣いていた音に似てる。"},
+    {speaker:"声",text:"泣くな。"},
+    {speaker:"声",text:"弱音を吐くな。"},
+    {speaker:"声",text:"お前がしっかりしろ。"},
+    {speaker:"声",text:"悲しんでいる暇なんてない。"},
+    {speaker:"{{name}}",text:"……っ。"},
+    {speaker:"じょりぃ",text:"{{name}}？"},
+    {speaker:"{{name}}",text:"ううん。なんでもない。"},
+    {speaker:"じょりぃ",text:"なんでもなくない顔してるよ。"},
+    {speaker:"{{name}}（心の声）",text:"いつからだろう。泣きたい時ほど、笑うようになったのは。"}
+  ],next:"3-4"},
+  {id:"3-4",image:"3-4.png",type:"story",title:"谷の底で",lines:[
+    {speaker:"narration",text:"谷の中へ入ると、そこには古い石碑や、壊れた橋の跡があった。"},
+    {speaker:"コトハ",text:"悲しいって、言えなかったんだね。"},
+    {speaker:"イブキ",text:"……言ったところで、何が変わるんだ。"},
+    {speaker:"narration",text:"イブキの声は低かった。その言葉は、どこか昔の自分に向けたようにも聞こえた。"},
+    {speaker:"{{name}}（心の声）",text:"イブキも、知ってるんだ。ひとりで立っているしかなかった時間を。"},
+    {speaker:"narration",text:"その時、谷の奥から大きな衝撃音が響いた。"},
+    {speaker:"じょりぃ",text:"今の音、絶対に「こんにちは」じゃないよね！？"},
+    {speaker:"イブキ",text:"行くぞ。"}
+  ],next:"3-5"},
+  {id:"3-5",image:"3-5.png",type:"story",title:"戦士発見",lines:[
+    {speaker:"narration",text:"霧を抜けた先に、ひとりの戦士が立っていた。"},
+    {speaker:"narration",text:"大きな盾を構え、黒い影の前に立ちはだかっている。"},
+    {speaker:"narration",text:"その背中は広く、強く、頼もしく見えた。けれど{{name}}には、その背中がほんの少し震えているように見えた。"},
+    {speaker:"戦士",text:"下がっていろ。"},
+    {speaker:"戦士",text:"ここは俺が守る。"},
+    {speaker:"イブキ",text:"あいつ、ひとりでやる気か。"},
+    {speaker:"じょりぃ",text:"出た。ひとりで全部背負う選手権、優勝候補。"},
+    {speaker:"イブキ",text:"……それ、俺にも言ってるか？"},
+    {speaker:"じょりぃ",text:"心当たりあるなら、準優勝くらいはあるかもね。"},
+    {speaker:"コトハ",text:"でも……あの人の言葉、硬い。まるで、自分に命令してるみたい。"},
+    {speaker:"{{name}}（心の声）",text:"あの人、強そうなのに。どうして、あんなに苦しそうなんだろう。"}
+  ],next:"3-6"},
+  {id:"3-6",image:"3-6.png",type:"choice",title:"どうする？",lines:[
+    {speaker:"narration",text:"影がうなり声をあげた。戦士は盾を構え直し、ひとりでその攻撃を受け止めようとしている。"},
+    {speaker:"{{name}}（心の声）",text:"このまま見ているだけじゃ、だめ。でも、何をすればいいんだろう。"}
+  ],choice:{question:"{{name}}は、戦士を見てどうする？",options:[
+    {label:"助けに行かなきゃ、と前に出る",score:{light:1},image:"3-6-1.png",after_lines:[
+      {speaker:"{{name}}",text:"このままじゃ危ない！"},
+      {speaker:"narration",text:"{{name}}は一歩前に出た。"},
+      {speaker:"イブキ",text:"{{name}}、無理するな！"},
+      {speaker:"{{name}}",text:"でも、ひとりで受け止めなくていいはずだから！"}
+    ]},
+    {label:"まず谷と影の様子を見つめる",score:{moon:1},image:"3-6-2.png",after_lines:[
+      {speaker:"narration",text:"{{name}}はすぐには走り出さず、谷の霧と影の動きを見つめた。"},
+      {speaker:"{{name}}（心の声）",text:"影は、ただ襲っているんじゃない。戦士の言葉に反応している。"},
+      {speaker:"{{name}}",text:"あの影……あの人の心に結びついてる気がする。"}
+    ]},
+    {label:"戦士の苦しそうな背中に胸が痛む",score:{fire:1},image:"3-6-3.png",after_lines:[
+      {speaker:"narration",text:"{{name}}は戦士の背中を見た。盾を持つ腕よりも、その肩の震えが気になった。"},
+      {speaker:"{{name}}（心の声）",text:"苦しそう。守っているのに、誰にも助けてって言えないみたい。"},
+      {speaker:"{{name}}",text:"あの人を、ひとりにしたくない。"}
+    ]},
+    {label:"影よりも、戦士の奥にある悲しみを感じる",score:{deep:1},image:"3-6-4.png",after_lines:[
+      {speaker:"narration",text:"{{name}}は影ではなく、戦士の奥に意識を向けた。"},
+      {speaker:"{{name}}（心の声）",text:"これは怒りじゃない。本当は、ずっと泣きたかった気持ちだ。"},
+      {speaker:"{{name}}",text:"うん。影の奥に……置き去りにされた悲しみがある。"}
+    ]}
+  ]},next:"3-7"},
+  {id:"3-7",image:"3-7.png",type:"story",title:"戦士との対話",lines:[
+    {speaker:"narration",text:"{{name}}たちが近づくと、戦士が鋭く振り返った。"},
+    {speaker:"戦士",text:"来るな！"},
+    {speaker:"戦士",text:"俺の後ろにいろ。守られる側は、余計なことを考えなくていい。"},
+    {speaker:"{{name}}",text:"でも、あなたも苦しそう。"},
+    {speaker:"戦士",text:"苦しくなどない。"},
+    {speaker:"戦士",text:"守る者が、弱音を吐くな。"},
+    {speaker:"{{name}}（心の声）",text:"守る人は、弱音を吐いちゃいけない……。"},
+    {speaker:"{{name}}（心の声）",text:"私も、どこかでそう思ってたのかな。"},
+    {speaker:"イブキ",text:"おい。守られる側とか、勝手に決めるな。"},
+    {speaker:"じょりぃ",text:"むむむ。強そうな言葉だけど、なんか心がカッチカチだよ。"},
+    {speaker:"コトハ",text:"カッチカチの言葉ほど、中にやわらかいものを隠してることがある。"}
+  ],next:"3-8"},
+  {id:"3-8",image:"3-8.png",type:"story",title:"影の言葉",lines:[
+    {speaker:"影",text:"泣くな。"},
+    {speaker:"影",text:"大丈夫と言え。"},
+    {speaker:"影",text:"弱音を吐けば、誰かを困らせる。"},
+    {speaker:"{{name}}",text:"……っ。"},
+    {speaker:"{{name}}（心の声）",text:"違うって言いたいのに。どこかで、その声を信じてきた気がする。"},
+    {speaker:"じょりぃ",text:"{{name}}！"},
+    {speaker:"イブキ",text:"無理するな。お前まで飲まれるぞ。"},
+    {speaker:"コトハ",text:"{{name}}、言葉にできなくてもいい。でも今、心が震えてるんだと思う。"},
+    {speaker:"じょりぃ",text:"{{name}}が誰かを助けたいのは、じょりぃ知ってる。"},
+    {speaker:"じょりぃ",text:"でもね、{{name}}も助けられていいんだよ。"},
+    {speaker:"{{name}}",text:"私も……？"},
+    {speaker:"じょりぃ",text:"そうだよ！{{name}}は回復係だけど、回復係だって回復されていいの！"},
+    {speaker:"イブキ",text:"それはそうだな。回復役が倒れたら、全員かなり困る。"},
+    {speaker:"じょりぃ",text:"ほら！イブキもたまには良いこと言う！"},
+    {speaker:"イブキ",text:"たまには、は余計だ。"},
+    {speaker:"{{name}}（心の声）",text:"助けてもらっていい。支えられていい。そんなふうに言われるだけで、泣きそうになるなんて。"}
+  ],next:"3-9"},
+  {id:"3-9",image:"3-9.png",type:"story",title:"泣いてもいい",lines:[
+    {speaker:"narration",text:"{{name}}は、戦士の前へ進んだ。"},
+    {speaker:"戦士",text:"来るなと言ったはずだ！"},
+    {speaker:"{{name}}",text:"来るよ。"},
+    {speaker:"{{name}}",text:"あなたが、ひとりで泣かないように。"},
+    {speaker:"戦士",text:"……泣く？馬鹿を言うな。俺は泣かない。"},
+    {speaker:"{{name}}",text:"泣いてもいいんだと思う。"},
+    {speaker:"{{name}}",text:"あなたに言ってる。でも、たぶん……私にも言ってる。"},
+    {speaker:"narration",text:"戦士の瞳が、わずかに揺れた。"},
+    {speaker:"{{name}}",text:"崩れても、終わりじゃないよ。"},
+    {speaker:"{{name}}",text:"誰かに支えてもらいながら、また立てばいい。"}
+  ],next:"3-10"},
+  {id:"3-10",image:"3-10.png",type:"choice",title:"影の記憶",lines:[
+    {speaker:"narration",text:"影の中に、ぼんやりと過去の景色が浮かび上がった。"},
+    {speaker:"narration",text:"小さな戦士がいる。誰かを守ろうとして、必死に盾を握っている。"},
+    {speaker:"声",text:"お前が泣いてどうする。"},
+    {speaker:"声",text:"しっかりしろ。お前が守るんだろ。"},
+    {speaker:"narration",text:"小さな戦士は、涙をこらえていた。"},
+    {speaker:"戦士",text:"やめろ……！"},
+    {speaker:"narration",text:"戦士の盾に、大きなひびが入る。"},
+    {speaker:"{{name}}（心の声）",text:"あの人は、泣かなかったんじゃない。"},
+    {speaker:"{{name}}（心の声）",text:"泣く場所が、なかったんだ。"}
+  ],choice:{question:"影の声を聞いた{{name}}の心は？",options:[
+    {label:"それでも、前に進まなきゃと思う",score:{light:1},image:"3-10-1.png",after_lines:[
+      {speaker:"{{name}}（心の声）",text:"怖い。でも、止まっていたら何も変わらない。"},
+      {speaker:"{{name}}",text:"私は、進みたい。泣きそうでも、進んでいいはずだから。"},
+      {speaker:"イブキ",text:"……その進み方なら、俺も一緒に行く。"}
+    ]},
+    {label:"なぜこの言葉が痛いのか考える",score:{moon:1},image:"3-10-2.png",after_lines:[
+      {speaker:"{{name}}（心の声）",text:"どうして、こんなに痛いんだろう。戦士に向けられた言葉なのに、私の奥まで響く。"},
+      {speaker:"{{name}}",text:"この痛みを、ちゃんと見たい。目をそらしたら、また置き去りにしてしまうから。"},
+      {speaker:"コトハ",text:"うん。見つめることも、勇気だよ。"}
+    ]},
+    {label:"本当は泣きたかったのかもしれないと思う",score:{fire:1},image:"3-10-3.png",after_lines:[
+      {speaker:"{{name}}（心の声）",text:"本当は、泣きたかったのかもしれない。"},
+      {speaker:"{{name}}",text:"あの人だけじゃない。私も……泣きたかったのかも。"},
+      {speaker:"じょりぃ",text:"{{name}}……。"}
+    ]},
+    {label:"「大丈夫」の奥に隠した気持ちを感じる",score:{deep:1},image:"3-10-4.png",after_lines:[
+      {speaker:"{{name}}（心の声）",text:"「大丈夫」の奥に、何を隠してきたんだろう。"},
+      {speaker:"{{name}}",text:"影は、あの人だけのものじゃない。私の中にも、同じ声がある。"},
+      {speaker:"コトハ",text:"その気づきが、きっと光になる。"}
+    ]}
+  ]},next:"3-11"},
+  {id:"3-11",image:"3-11.png",type:"story",title:"癒しの涙",lines:[
+    {speaker:"narration",text:"{{name}}の頬を、一粒の涙がこぼれた。"},
+    {speaker:"narration",text:"それは地面に落ちる前に、やわらかなターコイズブルーの光へ変わった。"},
+    {speaker:"じょりぃ",text:"{{name}}の光……。"},
+    {speaker:"コトハ",text:"涙が、魔法になってる。"},
+    {speaker:"イブキ",text:"すげえな。泣いてるのに、ちゃんと強い。"},
+    {speaker:"narration",text:"{{name}}は両手をそっと前に出した。光は、戦士の傷だらけの盾を包み込んでいく。"},
+    {speaker:"{{name}}",text:"傷があったことを、なかったことにする光じゃないよ。"},
+    {speaker:"{{name}}",text:"傷ごと、ここにいていいって伝える光。"},
+    {speaker:"戦士",text:"傷ごと……。"}
+  ],next:"3-12"},
+  {id:"3-12",image:"3-12.png",type:"story",title:"浄化",lines:[
+    {speaker:"影",text:"泣くな。弱音を吐くな。守る者は崩れるな。"},
+    {speaker:"戦士",text:"……違う。"},
+    {speaker:"影",text:"悲しみなど捨てろ。"},
+    {speaker:"戦士",text:"違う！"},
+    {speaker:"narration",text:"戦士は盾を構えた。けれど今度は、ひとりではなかった。"},
+    {speaker:"イブキ",text:"正面は俺も入る。ひとりでかっこつけんなよ。"},
+    {speaker:"じょりぃ",text:"わー！ひとりで背負う選手権、元優勝者からのありがたいお言葉！"},
+    {speaker:"コトハ",text:"悲しいと言っていい。苦しいと言っていい。"},
+    {speaker:"{{name}}",text:"今度は、一緒に受け止めよう。"},
+    {speaker:"戦士",text:"……ああ。"},
+    {speaker:"narration",text:"戦士の盾と、{{name}}の癒しの光が重なる。影の黒い風が、少しずつほどけていく。"},
+    {speaker:"戦士",text:"泣いても、俺は終わらない。"},
+    {speaker:"戦士",text:"泣いても、守りたい気持ちは消えない。"},
+    {speaker:"narration",text:"その瞬間、嘆きの影は黒い霧から、たくさんの小さな光へと変わっていった。"},
+    {speaker:"{{name}}（心の声）",text:"悲しみは、消えたんじゃない。やっと、置いていかれなくなったんだ。"}
+  ],next:"3-13"},
+  {id:"3-13",image:"3-13.png",type:"story",title:"マモル",lines:[
+    {speaker:"narration",text:"影が浄化されると、戦士はゆっくりと立ち上がった。"},
+    {speaker:"戦士",text:"助かった。……いや、違うな。守ってもらった。ありがとう。"},
+    {speaker:"戦士",text:"俺の名は、マモル。守りの戦士だ。"},
+    {speaker:"じょりぃ",text:"名前がもう守る気まんまん！"},
+    {speaker:"マモル",text:"いや、よく言われる。"},
+    {speaker:"コトハ",text:"マモル。あなたの盾、とても強いね。でも、さっきの光が入ったひびも、私は好き。"},
+    {speaker:"マモル",text:"ひびが好き、か。"},
+    {speaker:"コトハ",text:"うん。そこに、ちゃんと生きてきた時間があるから。"},
+    {speaker:"{{name}}",text:"一緒に行こう、マモル。"},
+    {speaker:"マモル",text:"ああ。今度は、ひとりで盾を構えない。"},
+    {speaker:"{{name}}（心の声）",text:"みんなと進むための、やさしい言葉だ。"}
+  ],next:"3-14"},
+  {id:"3-14",image:"3-14.png",type:"story",title:"次の行き先",lines:[
+    {speaker:"narration",text:"{{name}}の光の地図が開いた。そこに浮かび上がった名は――星灯りの村。"},
+    {speaker:"じょりぃ",text:"次は……村！やった！今度こそおやつ休憩あるかも！"},
+    {speaker:"イブキ",text:"お前の旅の目的、だんだん変わってないか？"},
+    {speaker:"マモル",text:"星か。暗い場所ほど、見えるものもあるんだな。"},
+    {speaker:"{{name}}（心の声）",text:"泣いたら、光が消えると思っていた。"},
+    {speaker:"{{name}}（心の声）",text:"でも、涙のあとに灯る光もあるんだ。"},
+    {speaker:"narration",text:"{{name}}は地図をそっと胸に抱いた。嘆きの谷の風は、もう泣き声ではなかった。"}
+  ],next:null}
+]};
+
+// ── CHAPTER 4 ──
+const CH4_DATA = {scenes:[
+  {id:"4-1",image:"4-1.png",title:"星灯りの村へ",blocks:[
+    {speaker:"—",text:"嘆きの谷を越えた一行は、夜の森を抜ける道を歩いていた。"},
+    {speaker:"—",text:"遠くに、小さな灯りがいくつも揺れている。"},
+    {speaker:"妖精じょりぃ",text:"わあ……星が地面に降りてきたみたい。"},
+    {speaker:"イブキ",text:"あれが、星灯りの村か。"},
+    {speaker:"コトハ",text:"きれい。でも……少し、静かすぎる。"},
+    {speaker:"マモル",text:"灯りはあるのに、あたたかさが遠いな。"}
+  ],next:"4-2"},
+  {id:"4-2",image:"4-2.png",title:"村の入口",blocks:[
+    {speaker:"—",text:"村の入口には、星の形をしたランタンがいくつも吊るされていた。"},
+    {speaker:"{{name}}",text:"あたたかい場所のはずなのに……どうしてだろう。胸が少し、きゅっとする。"},
+    {speaker:"妖精じょりぃ",text:"{{name}}、無理して笑わなくていいからね。"},
+    {speaker:"{{name}}",text:"うん。ありがとう、じょりぃ。"}
+  ],next:"4-3"},
+  {id:"4-3",image:"4-3.png",title:"村人たち",blocks:[
+    {speaker:"—",text:"広場の近くでは、村人たちが笑い合っていた。"},
+    {speaker:"—",text:"けれどその笑顔は、どこか薄い膜の向こうにあるようだった。"},
+    {speaker:"{{name}}（心の声）",text:"みんな笑っている。なのに……誰も、本当には近づいていない気がする。"},
+    {speaker:"コトハ",text:"言葉は交わしているのに、心だけ置いていかれている。そんな感じがするわ。"},
+    {speaker:"イブキ",text:"……嫌な感じだな。"}
+  ],next:"4-4"},
+  {id:"4-4",image:"4-4.png",title:"星灯りの広場",blocks:[
+    {speaker:"—",text:"村の中心には、大きな星ランタンがあった。"},
+    {speaker:"マモル",text:"ここが村の中心か。"},
+    {speaker:"妖精じょりぃ",text:"でも、あっちのランタン……消えかけてるよ。"},
+    {speaker:"{{name}}",text:"本当だ。誰かが、直してる。"}
+  ],next:"4-5"},
+  {id:"4-5",image:"4-5.png",title:"灯守りとの出会い",blocks:[
+    {speaker:"—",text:"広場の端で、ひとりの少女が消えかけた星ランタンに手を添えていた。"},
+    {speaker:"灯守り",text:"……大丈夫。まだ、灯せる。まだ、私がやらなきゃ。"},
+    {speaker:"{{name}}",text:"あの……手伝えることはありますか？"},
+    {speaker:"灯守り",text:"えっ……旅の方？"},
+    {speaker:"妖精じょりぃ",text:"僕たち、こわくないよ！ちょっとふわふわしてるだけ！"},
+    {speaker:"灯守り",text:"ふふ……ありがとう。私はルミナ。この村の灯守りです。"}
+  ],next:"4-6"},
+  {id:"4-6",image:"4-6.png",title:"中央ランタンの異変",blocks:[
+    {speaker:"—",text:"その時、広場の中央にある大きな星ランタンが、低く震えた。"},
+    {speaker:"ルミナ",text:"うそ……中央の灯りまで……！"},
+    {speaker:"—",text:"黒いもやが、星の光をゆっくり飲み込んでいく。"},
+    {speaker:"村人",text:"大丈夫、大丈夫だよ。ほら、笑っていれば……"},
+    {speaker:"{{name}}（心の声）",text:"違う。これは、大丈夫なんかじゃない。"}
+  ],choice:{prompt:"中央ランタンの異変を前に、{{name}}はどうする？",options:[
+    {label:"すぐに前へ出て、ランタンへ手を伸ばす",score:{light:1},next:"4-6-1"},
+    {label:"少し離れて、村人とルミナの様子を見る",score:{moon:1},next:"4-6-2"},
+    {label:"震えているルミナへ先に近づく",score:{fire:1},next:"4-6-3"},
+    {label:"黒いもやの奥にある小さな光を感じ取る",score:{deep:1},next:"4-6-4"}
+  ]},next:"4-7"},
+  {id:"4-6-1",image:"4-6-1.png",title:"light分岐",blocks:[
+    {speaker:"—",text:"{{name}}は反射的に前へ出た。"},
+    {speaker:"{{name}}",text:"この灯りを、消させない。"},
+    {speaker:"イブキ",text:"いいね。その勢い、嫌いじゃない。"},
+    {speaker:"ルミナ",text:"でも……近づいたら、あなたまで……！"},
+    {speaker:"{{name}}",text:"それでも、見ているだけにはできない。"}
+  ],next:"4-7"},
+  {id:"4-6-2",image:"4-6-2.png",title:"moon分岐",blocks:[
+    {speaker:"—",text:"{{name}}は一歩引き、広場全体を見つめた。"},
+    {speaker:"{{name}}",text:"ランタンだけじゃない。村人たちも、ルミナも……何かを隠してる。"},
+    {speaker:"コトハ",text:"灯りが消える前に、言えなかった言葉があるのかもしれない。"},
+    {speaker:"{{name}}",text:"うん。影の形を、ちゃんと見たい。"}
+  ],next:"4-7"},
+  {id:"4-6-3",image:"4-6-3.png",title:"fire分岐",blocks:[
+    {speaker:"—",text:"{{name}}はランタンではなく、震えるルミナの方へ歩いた。"},
+    {speaker:"{{name}}",text:"ルミナ。大丈夫って言わなくていいよ。"},
+    {speaker:"ルミナ",text:"……っ。"},
+    {speaker:"妖精じょりぃ",text:"こわい時は、こわいって言っていいんだよ。"},
+    {speaker:"ルミナ",text:"言ったら……全部、壊れそうで……。"}
+  ],next:"4-7"},
+  {id:"4-6-4",image:"4-6-4.png",title:"deep分岐",blocks:[
+    {speaker:"—",text:"{{name}}は黒いもやの奥に、かすかな星の光を見た。"},
+    {speaker:"{{name}}（心の声）",text:"これは、ただの影じゃない。泣いている光だ。"},
+    {speaker:"{{name}}",text:"消すんじゃなくて……戻してあげたい。"}
+  ],next:"4-7"},
+  {id:"4-7",image:"4-7.png",title:"星喰いの影",blocks:[
+    {speaker:"—",text:"黒いもやは広場いっぱいに広がり、夜空のような大きな影となった。"},
+    {speaker:"ルミナ",text:"星喰いの影……。"},
+    {speaker:"マモル",text:"下がれ。あれは受け止めるだけでも重い。"},
+    {speaker:"イブキ",text:"なら、道は俺が切る。"},
+    {speaker:"コトハ",text:"私は言葉の光でほどくわ。"},
+    {speaker:"妖精じょりぃ",text:"僕は星の粉係！きらきら担当！"}
+  ],next:"4-8"},
+  {id:"4-8",image:"4-8.png",title:"ルミナの本音",blocks:[
+    {speaker:"—",text:"ルミナは中央ランタンの前で膝をついた。"},
+    {speaker:"ルミナ",text:"私は灯守りなのに……みんなの灯りを守るはずなのに……"},
+    {speaker:"ルミナ",text:"本当は、ずっと寂しかった。"},
+    {speaker:"ルミナ",text:"ここにいるのに、私だけ居場所がないみたいだった。"},
+    {speaker:"{{name}}",text:"ルミナ……。"}
+  ],next:"4-9"},
+  {id:"4-9",image:"4-9.png",title:"{{name}}自身の核心",blocks:[
+    {speaker:"—",text:"ルミナの言葉は、{{name}}の胸の奥にも触れた。"},
+    {speaker:"{{name}}（心の声）",text:"私も……誰かのために走ってきた。"},
+    {speaker:"{{name}}（心の声）",text:"癒して、支えて、大丈夫って言って。"},
+    {speaker:"{{name}}（心の声）",text:"でも、自分がここにいていいのか、わからなくなる時があった。"},
+    {speaker:"—",text:"黒いもやが、{{name}}の足元にも忍び寄る。"}
+  ],next:"4-10"},
+  {id:"4-10",image:"4-10.png",title:"仲間たちのそばに",blocks:[
+    {speaker:"妖精じょりぃ",text:"{{name}}！ひとりで影に入っちゃだめ！"},
+    {speaker:"イブキ",text:"お前が全部背負う必要はない。"},
+    {speaker:"コトハ",text:"黙っていても、そばにいることはできる。"},
+    {speaker:"マモル",text:"何もできない日があるなら、その日は俺が盾を持つ。"},
+    {speaker:"{{name}}",text:"みんな……。"}
+  ],next:"4-10-1"},
+  {id:"4-10-1",image:"4-10-1.png",title:"イブキの言葉",blocks:[
+    {speaker:"イブキ",text:"ひとりで強くなるんじゃない。"},
+    {speaker:"イブキ",text:"一緒にいるから、強くなれるんだろ。"},
+    {speaker:"{{name}}",text:"……うん。"}
+  ],next:"4-10-2"},
+  {id:"4-10-2",image:"4-10-2.png",title:"コトハの言葉",blocks:[
+    {speaker:"コトハ",text:"言葉にできない日があってもいい。"},
+    {speaker:"コトハ",text:"それでも、あなたがここにいることは消えないわ。"},
+    {speaker:"{{name}}",text:"言葉にならなくても……いていいんだね。"}
+  ],next:"4-10-3"},
+  {id:"4-10-3",image:"4-10-3.png",title:"マモルの言葉",blocks:[
+    {speaker:"マモル",text:"守られることを、悪いと思うな。"},
+    {speaker:"マモル",text:"守りたいと思わせてくれる人がいる。それも、力だ。"},
+    {speaker:"{{name}}",text:"……ありがとう、マモル。"}
+  ],next:"4-10-4"},
+  {id:"4-10-4",image:"4-10-4.png",title:"じょりぃ",blocks:[
+    {speaker:"妖精じょりぃ",text:"はい！じょりぃ涙ふき係、出動です！"},
+    {speaker:"{{name}}",text:"ふふ……何それ。"},
+    {speaker:"妖精じょりぃ",text:"泣いてもいいけど、鼻水は早めに申告してね！"},
+    {speaker:"イブキ",text:"そこは黙って拭いてやれよ。"},
+    {speaker:"—",text:"重かった空気が、少しだけやわらいだ。"}
+  ],next:"4-11"},
+  {id:"4-11",image:"4-11.png",title:"浄化開始",blocks:[
+    {speaker:"—",text:"{{name}}はルミナへ向かって歩き出した。"},
+    {speaker:"イブキ",text:"道は作る。進め！"},
+    {speaker:"マモル",text:"背中は任せろ。"},
+    {speaker:"コトハ",text:"影をほどく言葉を、ここに。"},
+    {speaker:"妖精じょりぃ",text:"星の粉、いっくよー！"}
+  ],next:"4-11-5"},
+  {id:"4-11-5",image:"4-11-5.png",title:"手を伸ばす",blocks:[
+    {speaker:"—",text:"{{name}}はルミナの前にしゃがみ、そっと手を差し出した。"},
+    {speaker:"{{name}}",text:"ルミナ。あなたが守ってきた灯りは、ちゃんとここにあるよ。"},
+    {speaker:"ルミナ",text:"でも……私が泣いたら、みんなの灯りまで消えてしまう気がして……"},
+    {speaker:"{{name}}",text:"泣いても、消えないよ。"}
+  ],next:"4-11-6"},
+  {id:"4-11-6",image:"4-11-6.png",title:"ここにいていい",blocks:[
+    {speaker:"—",text:"{{name}}は泣いているルミナを、やさしく抱きしめた。"},
+    {speaker:"{{name}}",text:"ここにいていいよ。"},
+    {speaker:"{{name}}",text:"灯せない日があっても、守れない日があっても。"},
+    {speaker:"{{name}}",text:"あなたは、ここにいていい。"},
+    {speaker:"ルミナ",text:"……う、うぅ……っ。"},
+    {speaker:"—",text:"ルミナの涙が落ちるたび、黒いもやが小さな星の光へ戻っていった。"}
+  ],next:"4-11-7"},
+  {id:"4-11-7",image:"4-11-7.png",title:"光が広がる",blocks:[
+    {speaker:"—",text:"ターコイズブルーの光が広場いっぱいに広がった。"},
+    {speaker:"ルミナ",text:"あ……星が、戻っていく……。"},
+    {speaker:"{{name}}",text:"うん。影も、もとは小さな光だったんだね。"}
+  ],next:"4-11-8"},
+  {id:"4-11-8",image:"4-11-8.png",title:"星に戻る",blocks:[
+    {speaker:"—",text:"星喰いの影は、やさしくほどけていった。"},
+    {speaker:"妖精じょりぃ",text:"おかえり、星たち。"},
+    {speaker:"コトハ",text:"消すんじゃなくて、帰す。きっと、これが癒しなのね。"}
+  ],next:"4-12"},
+  {id:"4-12",image:"4-12.png",title:"灯りが戻る",blocks:[
+    {speaker:"—",text:"星灯りの村に、あたたかな灯りが戻った。"},
+    {speaker:"村人",text:"……ずっと、大丈夫なふりをしていた。"},
+    {speaker:"村人",text:"本当は、寂しかった。"},
+    {speaker:"—",text:"村人たちは、少しずつ本音を言葉にし始めた。"}
+  ],next:"4-12-4"},
+  {id:"4-12-4",image:"4-12-4.png",title:"ルミナの決意",blocks:[
+    {speaker:"ルミナ",text:"{{name}}さん。私、ここに残ります。"},
+    {speaker:"{{name}}",text:"うん。"},
+    {speaker:"ルミナ",text:"もう、ひとりで全部を守ろうとはしません。"},
+    {speaker:"ルミナ",text:"この村のみんなと一緒に、灯りを守っていきます。"},
+    {speaker:"妖精じょりぃ",text:"ルミナ、すごくいい顔してる！"}
+  ],next:"4-13"},
+  {id:"4-13",image:"4-13.png",title:"魔王城へ",blocks:[
+    {speaker:"—",text:"その時、{{name}}の光の地図が静かに輝き始めた。"},
+    {speaker:"—",text:"地図の上に、黒い城のシルエットが浮かび上がる。"},
+    {speaker:"イブキ",text:"……魔王城か。"},
+    {speaker:"マモル",text:"いよいよだな。"},
+    {speaker:"コトハ",text:"影の中心へ向かう時が来たのね。"},
+    {speaker:"{{name}}",text:"うん。行こう。"}
+  ],next:"4-13-1"},
+  {id:"4-13-1",image:"4-13-1.png",title:"星ランタン",blocks:[
+    {speaker:"ルミナ",text:"待ってください。これを……。"},
+    {speaker:"—",text:"ルミナは小さな星ランタンを、両手で差し出した。"},
+    {speaker:"ルミナ",text:"帰ってきていい場所があることを、忘れないでください。"},
+    {speaker:"{{name}}",text:"……ありがとう。大切にするね。"}
+  ],next:"4-13-2"},
+  {id:"4-13-2",image:"4-13-2.png",title:"胸に抱く",blocks:[
+    {speaker:"{{name}}（心の声）",text:"私は、帰ってきていい。"},
+    {speaker:"{{name}}（心の声）",text:"ここにも、私の灯りを覚えてくれる人がいる。"},
+    {speaker:"{{name}}",text:"前に進める気がする。"}
+  ],next:"4-13-3"},
+  {id:"4-13-3",image:"4-13-3.png",title:"旅立ち",blocks:[
+    {speaker:"—",text:"{{name}}たちは、星灯りの村を背に歩き出した。"},
+    {speaker:"ルミナ",text:"{{name}}さん！みなさん！どうか、無事で！"},
+    {speaker:"妖精じょりぃ",text:"また帰ってくるからねー！おやつも用意しといてねー！"},
+    {speaker:"{{name}}",text:"行こう。私たちの影を、取り戻しに。"}
+  ],next:null}
+]};
+
+// ── CHAPTER 5 ──
+const CH5_DATA = {scenes:[
+  {id:"5-1",image:"5-1.png",title:"星灯りの村を出て",blocks:[
+    {type:"narration",text:"星灯りの村の灯りが、少しずつ遠ざかっていく。"},
+    {type:"narration",text:"ルミナが渡してくれた小さな星のランタンは、{{name}}の手の中で、かすかにあたたかく光っていた。"},
+    {type:"narration",text:"遠くに、黒い城が見える。夜空を覆うようにそびえる、影の魔王城。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"怖い。本当は、今すぐ引き返したい。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"でも……ここまで来たんだ。もう、私は一人じゃない。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、足、止まってるよ。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……かなり怖くなった。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"正直でよろしい！"},
+    {type:"dialogue",speaker:"イブキ",text:"怖くないやつなんていない。あれを見て平気な顔してる方が、たぶんおかしい。"},
+    {type:"dialogue",speaker:"コトハ",text:"怖いと感じるのは、大切なものを守りたい時にも起こります。"},
+    {type:"dialogue",speaker:"マモル",text:"倒れそうになったら言ってくれ。俺が支える。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……ありがとう。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"ほら。ゆっくりでいいよ。ラスボスのおうち、逃げないし。"},
+    {type:"dialogue",speaker:"イブキ",text:"それ、安心していいやつか？"},
+    {type:"narration",text:"少しだけ、{{name}}の胸の奥がゆるんだ。"}
+  ],next:"5-2"},
+  {id:"5-2",image:"5-1.png",title:"魔王城の入口",blocks:[
+    {type:"narration",text:"魔王城の門は、あまりにも大きかった。黒い鉄でできた扉には、古い傷のような模様がいくつも刻まれている。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"うわぁ……見るからに、ラスボスのおうちって感じ。"},
+    {type:"dialogue",speaker:"マモル",text:"悪化している。"},
+    {type:"dialogue",speaker:"コトハ",text:"でも、正直な表現です。"},
+    {type:"dialogue",speaker:"{{name}}",text:"ふふ……。"},
+    {type:"narration",text:"ほんの少し笑った瞬間、城の扉がゆっくり開いていく。"},
+    {type:"dialogue",speaker:"イブキ",text:"{{name}}。一人で前に出るなよ。"},
+    {type:"dialogue",speaker:"マモル",text:"ここから先は、誰か一人が背負う場所じゃない。"},
+    {type:"narration",text:"{{name}}は小さくうなずいた。そして、仲間たちと一緒に、魔王城の中へ足を踏み入れた。"}
+  ],next:"5-3"},
+  {id:"5-3",image:"5-3.png",title:"影の廊下",blocks:[
+    {type:"narration",text:"城の中は、音がなかった。やがて、壁の表面が水面のように揺れた。"},
+    {type:"narration",text:"一人で剣を振るう影。口元を押さえて、言葉を飲み込む影。盾を抱えたまま、涙をこらえる影。誰もいない村で、小さな灯りを守る影。"},
+    {type:"dialogue",speaker:"{{name}}",text:"これは……。"},
+    {type:"dialogue",speaker:"コトハ",text:"記憶です。でも、ただの過去ではありません。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"一人で頑張らなきゃ。私がちゃんとしなきゃ。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"泣いたら、崩れてしまう。だから、笑っていなきゃ。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"役に立てない私は、ここにいてもいいの？"},
+    {type:"dialogue",speaker:"{{name}}",text:"……全部、私の中にもあった。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"うん。"},
+    {type:"narration",text:"その瞬間、廊下の奥から黒いもやが伸びてきた。{{name}}の足首に絡みついた。"}
+  ],next:"5-4"},
+  {id:"5-4",image:"5-4.png",title:"一人で戦う影",blocks:[
+    {type:"dialogue",speaker:"影の声",text:"一人で立て。一人で戦え。誰かに頼るな。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"そうだ。私がしっかりしなきゃ。"},
+    {type:"narration",text:"鎖がきつく締まる。足が動かない。次の瞬間、銀色の光が走った。"},
+    {type:"dialogue",speaker:"イブキ",text:"ふざけるな！"},
+    {type:"narration",text:"イブキの剣が、黒い鎖を断ち切った。"},
+    {type:"dialogue",speaker:"イブキ",text:"一人で戦うなって、俺に言ったのは{{name}}だろ。"},
+    {type:"dialogue",speaker:"イブキ",text:"今度は、俺たちが隣に立つ番だ。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"イブキ、かっこいいこと言った！"},
+    {type:"dialogue",speaker:"イブキ",text:"茶化すな。"},
+    {type:"dialogue",speaker:"マモル",text:"耳が赤いぞ。"},
+    {type:"dialogue",speaker:"イブキ",text:"見なくていい！"}
+  ],next:"5-5"},
+  {id:"5-5",image:"5-5.png",title:"言えなかった影",blocks:[
+    {type:"dialogue",speaker:"影の声",text:"言うな。迷惑になる。本音を言えば、嫌われる。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"怖い。苦しい。助けてほしい。でも、言ったら……。"},
+    {type:"dialogue",speaker:"コトハ",text:"{{name}}。"},
+    {type:"narration",text:"コトハが静かに前へ出た。光の文字が黒い文字に触れ、ひとつずつほどいていった。"},
+    {type:"dialogue",speaker:"コトハ",text:"言葉にしていいんです。怖いも、苦しいも、助けてほしいも。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……怖い。"},
+    {type:"dialogue",speaker:"{{name}}",text:"怖い。本当は、すごく怖い。苦しい。助けてって、言いたかった。"},
+    {type:"narration",text:"最後の黒い文字が、光に変わった。"},
+    {type:"dialogue",speaker:"コトハ",text:"聞こえました。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"じょりぃにも、ちゃんと聞こえたよ。"},
+    {type:"dialogue",speaker:"イブキ",text:"俺にも。"},
+    {type:"dialogue",speaker:"マモル",text:"俺にもだ。"}
+  ],next:"5-6"},
+  {id:"5-6",image:"5-6.png",title:"泣けなかった影",blocks:[
+    {type:"dialogue",speaker:"影の声",text:"泣くな。泣けば、誰かが困る。"},
+    {type:"narration",text:"影が盾を振り下ろした。マモルが構えた。激しい衝撃音。"},
+    {type:"dialogue",speaker:"マモル",text:"泣かないことが強さじゃない。守る人も、泣いていい。"},
+    {type:"dialogue",speaker:"{{name}}",text:"でも、今泣いたら……。"},
+    {type:"dialogue",speaker:"マモル",text:"泣いても、前には進める。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……泣いても、いいの？"},
+    {type:"dialogue",speaker:"マモル",text:"いい。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"泣いてる{{name}}も、じょりぃは好きだよ。"},
+    {type:"narration",text:"ぽろ、と涙がこぼれた。置き去りにしてきた心が、やっと扉を開けた音だった。"}
+  ],next:"5-8"},
+  {id:"5-8",image:"5-8.png",title:"じょりぃの光",blocks:[
+    {type:"dialogue",speaker:"じょりぃ",text:"ねえ、{{name}}。鼻、赤い。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……今それ言う？"},
+    {type:"dialogue",speaker:"じょりぃ",text:"うん。{{name}}が泣いても世界は終わらなかったよって、教えたかったから。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}は回復係だけど、消しに行くんじゃない。迎えに行くんだよ。"},
+    {type:"dialogue",speaker:"影の声",text:"役に立て。光れ。できないなら、そこにいる意味はない。"},
+    {type:"dialogue",speaker:"ルミナの記憶",text:"何もできない日があっても、ここにいていいのです。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"ここにいていい。"},
+    {type:"dialogue",speaker:"イブキ",text:"役に立つから仲間なんじゃない。一緒にいたいから、仲間なんだろ。"}
+  ],next:"5-10"},
+  {id:"5-10",image:"5-10.png",title:"影の魔王",blocks:[
+    {type:"narration",text:"黒い玉座の上に、闇が集まり始めた。巨大な影の姿を作っていく。"},
+    {type:"dialogue",speaker:"影の魔王",text:"ようやく来たか。"},
+    {type:"dialogue",speaker:"影の魔王",text:"仲間か。光か。絆か。美しい言葉だ。だが、その光で何を救えた？"},
+    {type:"dialogue",speaker:"影の魔王",text:"お前は本当に光なのか。弱い自分を隠してきたくせに。"},
+    {type:"dialogue",speaker:"{{name}}",text:"やめて……。"},
+    {type:"dialogue",speaker:"影の魔王",text:"本当は、誰かに必要とされたかっただけではないのか。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"違う。違う、って言いたい。でも……本当に、違うの？"}
+  ],next:"5-11"},
+  {id:"5-11",image:"5-6.png",title:"戦い",blocks:[
+    {type:"narration",text:"影の魔王が片手を上げた。無数の影が飛び出す。"},
+    {type:"dialogue",speaker:"イブキ",text:"{{name}}に触るな！"},
+    {type:"dialogue",speaker:"マモル",text:"ここは通さない！"},
+    {type:"dialogue",speaker:"コトハ",text:"影の声よ。閉じ込められた言葉よ。本当の形を思い出して。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、息して！吸って、吐いて！あと、じょりぃを見る！かわいいから！"},
+    {type:"narration",text:"{{name}}は震える息を吸った。ターコイズブルーの光が、ほんの少し戻る。"},
+    {type:"dialogue",speaker:"影の魔王",text:"すべて外からのもの。だが、私はお前の中にいる。"},
+    {type:"narration",text:"黒い鏡に、泣いている小さな{{name}}が映った。"},
+    {type:"dialogue",speaker:"影の魔王",text:"見ろ。お前が置き去りにしたお前だ。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"見たくない。あの子を見るのが、怖い。"}
+  ],next:"5-12"},
+  {id:"5-12",image:"5-12.png",title:"魔王の問い",blocks:[
+    {type:"narration",text:"影の魔王の姿が、さらに大きくなった。"},
+    {type:"narration",text:"イブキが剣を構え直す。コトハが杖を握る。マモルが盾を上げる。じょりぃが{{name}}のそばで光る。"},
+    {type:"dialogue",speaker:"影の魔王",text:"答えろ。役に立てないお前に、価値はあるのか。"},
+    {type:"dialogue",speaker:"影の魔王",text:"救えなかった痛みを抱えたまま、光を名乗るのか。"},
+    {type:"narration",text:"声が出ない。でも、仲間たちの声が胸の奥に残っている。"},
+    {type:"dialogue",speaker:"影の魔王",text:"それでも、お前は自分の光を信じるのか？"},
+    {type:"narration",text:"背中には、仲間たちの光。胸の奥には、まだ消えていない小さなターコイズブルーの光があった。"}
+  ],choices:[
+    {id:"light",label:"怖くても、私は光を選ぶ",score:{light:1},next:"5-12-light"},
+    {id:"moon",label:"逃げずに、この影を見つめる",score:{moon:1},next:"5-12-moon"},
+    {id:"fire",label:"泣いている影のそばに行く",score:{fire:1},next:"5-12-fire"},
+    {id:"deep",label:"この影が生まれた理由を受け止める",score:{deep:1},next:"5-12-deep"}
+  ],next:"5-13"},
+  {id:"5-12-light",image:"5-13.png",title:"光を選ぶ",blocks:[
+    {type:"dialogue",speaker:"{{name}}",text:"怖い。"},
+    {type:"dialogue",speaker:"影の魔王",text:"ならば、なぜ進む。"},
+    {type:"dialogue",speaker:"{{name}}",text:"怖くないから進むんじゃない。怖くても、私は光を選ぶ。"},
+    {type:"dialogue",speaker:"イブキ",text:"いいぞ、{{name}}。その一歩、俺が守る。"}
+  ],next:"5-13"},
+  {id:"5-12-moon",image:"5-12.png",title:"影を見つめる",blocks:[
+    {type:"dialogue",speaker:"影の魔王",text:"見て何になる。"},
+    {type:"dialogue",speaker:"{{name}}",text:"もう、置き去りにしたくないから。"},
+    {type:"dialogue",speaker:"コトハ",text:"見つめることは、責めることではありません。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……そこにいたんだね。"}
+  ],next:"5-13"},
+  {id:"5-12-fire",image:"5-12-3.png",title:"そばに行く",blocks:[
+    {type:"dialogue",speaker:"影の魔王",text:"近づくな。その子に触れれば、お前も壊れる。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……ずっと、そう思ってた。"},
+    {type:"dialogue",speaker:"{{name}}",text:"ひとりにして、ごめんね。"},
+    {type:"dialogue",speaker:"{{name}}",text:"泣いていいよ。もう、ひとりで泣かなくていいよ。"},
+    {type:"narration",text:"小さな{{name}}の涙が、あたたかな光になってこぼれた。"}
+  ],next:"5-13"},
+  {id:"5-12-deep",image:"5-13.png",title:"理由を受け止める",blocks:[
+    {type:"dialogue",speaker:"{{name}}",text:"あなたは、どうして生まれたの？"},
+    {type:"dialogue",speaker:"影の魔王",text:"……黙れ。"},
+    {type:"dialogue",speaker:"{{name}}",text:"私を傷つけるため？それとも……守るため？"},
+    {type:"dialogue",speaker:"{{name}}",text:"この影は、私を壊したかったんじゃない。傷つかないように、守ろうとしてたんだ。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"過保護すぎる迷子の影だね。"}
+  ],next:"5-13"},
+  {id:"5-13",image:"5-13.png",title:"影に近づく",blocks:[
+    {type:"narration",text:"{{name}}はもう一度、影の魔王を見上げた。ただの敵ではない。"},
+    {type:"dialogue",speaker:"影の魔王",text:"来るな。"},
+    {type:"dialogue",speaker:"{{name}}",text:"大丈夫。でも、ひとりでは行かない。"},
+    {type:"narration",text:"イブキが道を切り、コトハが影の声をほどき、マモルが後ろを守り、じょりぃが{{name}}の肩のそばで光った。"},
+    {type:"dialogue",speaker:"影の魔王",text:"お前が私を受け入れれば、また苦しむぞ！それでも来るのか！"},
+    {type:"dialogue",speaker:"{{name}}",text:"……うん。"},
+    {type:"dialogue",speaker:"影の魔王",text:"なぜだ！"},
+    {type:"dialogue",speaker:"{{name}}",text:"あなたを、もう一人にしないため。"},
+    {type:"dialogue",speaker:"{{name}}",text:"あなたも、私だったんだね。"},
+    {type:"dialogue",speaker:"{{name}}",text:"ずっと、怖かったんだね。"},
+    {type:"narration",text:"影の魔王の輪郭が、大きく揺れた。巨大な魔物の姿が崩れ、黒い霧の奥に、小さな影が見えた。"}
+  ],next:"5-14"},
+  {id:"5-14",image:"5-14.png",title:"最終浄化",blocks:[
+    {type:"narration",text:"{{name}}は、小さな影の前に膝をついた。"},
+    {type:"dialogue",speaker:"小さな影",text:"……遅いよ。ずっと待ってた。怖かった。苦しかった。誰にも言えなかった。"},
+    {type:"dialogue",speaker:"小さな影",text:"泣いたらだめだと思った。役に立たなかったら、置いていかれると思った。"},
+    {type:"dialogue",speaker:"{{name}}",text:"……ごめんね。"},
+    {type:"dialogue",speaker:"小さな影",text:"私のこと、嫌いだった？"},
+    {type:"dialogue",speaker:"{{name}}",text:"嫌いだったんじゃない。でも、怖くて、見られなかった。"},
+    {type:"dialogue",speaker:"小さな影",text:"……壊れたら、だめなの？"},
+    {type:"dialogue",speaker:"{{name}}",text:"だめじゃなかった。泣いても、崩れても、助けてって言っても、私は私のままでよかった。"},
+    {type:"dialogue",speaker:"{{name}}",text:"うん。光れない夜があっても、私は消えない。"},
+    {type:"dialogue",speaker:"イブキ",text:"一人で戦わなくていい。"},
+    {type:"dialogue",speaker:"コトハ",text:"本当の気持ちを、言葉にしていい。"},
+    {type:"dialogue",speaker:"マモル",text:"守る人も、泣いていい。守られていい。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"{{name}}がどんな{{name}}でも、じょりぃはそばにいるよ。"},
+    {type:"narration",text:"すべての光が、{{name}}のターコイズブルーの光に重なっていく。"},
+    {type:"dialogue",speaker:"{{name}}",text:"もう、一人で背負わなくていい。"},
+    {type:"dialogue",speaker:"小さな影",text:"じゃあ、どうするの。"},
+    {type:"dialogue",speaker:"{{name}}",text:"影ごと、私が連れていく。"}
+  ],next:"5-14-2"},
+  {id:"5-14-2",image:"5-14-2.png",title:"黒い星を胸に",blocks:[
+    {type:"narration",text:"影の魔王の巨大な姿が、ゆっくり崩れていく。けれど、影は消滅しなかった。小さな黒い星になって、{{name}}の手のひらに残った。"},
+    {type:"dialogue",speaker:"{{name}}",text:"あなたも、私。"},
+    {type:"narration",text:"{{name}}はその黒い星を、そっと胸に抱いた。"},
+    {type:"dialogue",speaker:"{{name}}",text:"泣ける私も、迷う私も、何もできない私も、私の一部。"},
+    {type:"dialogue",speaker:"{{name}}",text:"影があるまま、光を選んでいい。"},
+    {type:"narration",text:"黒い鏡が、一枚ずつ砕けていく。朝の光が差し込んだ。"}
+  ],next:"5-15"},
+  {id:"5-15",image:"5-16.png",title:"夜明け",blocks:[
+    {type:"narration",text:"魔王城の闇は、ゆっくりとほどけていった。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"……終わった、の？"},
+    {type:"dialogue",speaker:"イブキ",text:"たぶん、な。"},
+    {type:"dialogue",speaker:"コトハ",text:"始まった、のかもしれません。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"影は、まだある。でも、もう私を飲み込むだけの闇じゃない。私が、連れていくもの。"},
+    {type:"narration",text:"城の扉が開く。外には、夜明けが広がっていた。"}
+  ],next:"5-16"},
+  {id:"5-16",image:"5-16.png",title:"光を選ぶ朝",blocks:[
+    {type:"narration",text:"朝の光の中、{{name}}たちは歩き出した。"},
+    {type:"narration",text:"光の地図は、もう次の目的地を示していなかった。その中央には、小さな朝の光が灯っていた。"},
+    {type:"dialogue",speaker:"マモル",text:"探す旅から、選ぶ旅に変わったのかもしれない。"},
+    {type:"dialogue",speaker:"じょりぃ",text:"まずは朝ごはん？"},
+    {type:"dialogue",speaker:"イブキ",text:"台無しだな。"},
+    {type:"dialogue",speaker:"{{name}}",text:"ふふ。でも、いいかも。"},
+    {type:"dialogue",speaker:"{{name}}（心の声）",text:"私は、影があるまま光を選んでいい。"},
+    {type:"dialogue",speaker:"{{name}}",text:"ここから、始まるんだと思う。"},
+    {type:"narration",text:"{{name}}は仲間たちと並んで歩き出す。影があるまま、光を選ぶために。"}
+  ],nextChapter:"ending"}
+]};
+
+// ── ENDING ──
+const ENDING_DATA = {
+  scenes:[
+    {id:"ending-01",image:"5-17.png",title:"魔王城の外、朝の光",lines:[
+      {type:"narration",text:"魔王城の外へ出ると、夜明けの光が静かに広がっていた。"},
+      {type:"narration",text:"空は淡い金色とターコイズブルーに染まり、やわらかな光が差し込んでいる。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"……まだ、ここにいる。"},
+      {type:"narration",text:"影は、消えたわけではなかった。けれどもう、それは{{name}}を閉じ込める闇ではなかった。"},
+      {type:"dialogue",speaker:"イブキ",text:"……終わった、のか？"},
+      {type:"dialogue",speaker:"コトハ",text:"終わった、というより……始まったのかもしれません。"},
+      {type:"dialogue",speaker:"マモル",text:"影を消すためじゃない。影ごと歩くための朝だな。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"{{name}}、ちゃんといる？"},
+      {type:"dialogue",speaker:"{{name}}",text:"うん。……ここにいる。影も、光も、どちらも一緒に。"}
+    ]},
+    {id:"ending-02",image:"5-17.png",title:"仲間たちの言葉",lines:[
+      {type:"dialogue",speaker:"イブキ",text:"なあ、{{name}}。お前がいなかったら、俺はまだ、一人で戦うことが強さだと思ってた。"},
+      {type:"dialogue",speaker:"イブキ",text:"また旅に出るなら呼べ。……まあ、呼ばれなくても行くかもしれないけどな。"},
+      {type:"dialogue",speaker:"コトハ",text:"{{name}}さんは、自分のための言葉も持てるようになったんですね。"},
+      {type:"dialogue",speaker:"コトハ",text:"怖い。苦しい。助けてほしい。その言葉たちは、弱さではありません。"},
+      {type:"dialogue",speaker:"マモル",text:"これからは、{{name}}自身のことも、守っていい。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"{{name}}を助けに来た一番すごいヒーラーは、{{name}}だったってこと！"},
+      {type:"dialogue",speaker:"{{name}}",text:"……私が、私を。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"そうだよ。{{name}}が、{{name}}を助けたんだよ。"}
+    ]},
+    {id:"ending-03",image:"5-18.png",title:"星灯りの村へ",lines:[
+      {type:"narration",text:"朝の道を進むと、遠くに小さな灯りが見えた。"},
+      {type:"dialogue",speaker:"{{name}}",text:"……帰って、いいのかな。"},
+      {type:"dialogue",speaker:"マモル",text:"いいに決まってる。"},
+      {type:"dialogue",speaker:"コトハ",text:"帰れる場所は、完璧な自分だけを迎える場所ではありませんから。"},
+      {type:"dialogue",speaker:"イブキ",text:"行こうぜ。待ってるやつがいるんだろ。"}
+    ]},
+    {id:"ending-04",image:"5-18.png",title:"おかえりなさい",lines:[
+      {type:"narration",text:"星灯りの村の入口に、ルミナが立っていた。"},
+      {type:"dialogue",speaker:"ルミナ",text:"おかえりなさい。"},
+      {type:"narration",text:"その一言を聞いた瞬間、{{name}}の胸の奥が、ふわりとほどけた。"},
+      {type:"dialogue",speaker:"{{name}}",text:"ただいま……！"},
+      {type:"dialogue",speaker:"ルミナ",text:"ちゃんと、帰ってきてくれた。"},
+      {type:"dialogue",speaker:"{{name}}",text:"うん。……帰ってきたよ。影も、光も、一緒に。"},
+      {type:"dialogue",speaker:"ルミナ",text:"灯りは、消えないように守るものではありません。暗い日に、帰る場所を思い出すためのものです。"}
+    ]},
+    {id:"ending-05",image:"5-18.png",title:"おじいちゃんの記憶",lines:[
+      {type:"dialogue",speaker:"おじいちゃんの声",text:"誰かを癒やせる子はね、自分の痛みにも、手を当てられる子なんだよ。"},
+      {type:"dialogue",speaker:"{{name}}",text:"……おじいちゃん。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"おじいちゃんは、{{name}}が{{name}}を助けられる日も、ずっと待ってたんだと思う。"},
+      {type:"narration",text:"受け継いだ力は、誰かを癒やすためだけのものではなかった。{{name}}自身を、抱きしめるための力でもあった。"}
+    ]},
+    {id:"ending-06",image:"5-19.png",title:"旅のあとに灯る笑い声",lines:[
+      {type:"dialogue",speaker:"じょりぃ",text:"さて！今日のじょりぃは大活躍だったね！"},
+      {type:"dialogue",speaker:"イブキ",text:"お前、最後ちょっと転びかけてただろ。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"あれは転んだんじゃないの！大地と友情を確認してたの！"},
+      {type:"dialogue",speaker:"じょりぃ",text:"イブキこそ、さっき目がうるうるしてたよね？"},
+      {type:"dialogue",speaker:"イブキ",text:"してない。"},
+      {type:"dialogue",speaker:"コトハ",text:"ふふ。言葉にしないやさしさも、ちゃんと伝わっていますよ。"},
+      {type:"dialogue",speaker:"ルミナ",text:"ふふ。とても、にぎやかな灯りですね。"},
+      {type:"dialogue",speaker:"{{name}}",text:"……こういう時間も、ちゃんと受け取っていいんだね。"},
+      {type:"dialogue",speaker:"じょりぃ",text:"もちろん！笑うのも、泣くのも、休むのも、ぜんぶ旅の続きだよ！"}
+    ]},
+    {id:"ending-07",image:"5-19.png",title:"光の地図",lines:[
+      {type:"narration",text:"その時、光の地図が静かに開いた。けれど地図は、もう次の目的地を示していなかった。"},
+      {type:"narration",text:"かわりに、今いる場所を、やさしく照らしていた。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"光は、どこか遠くにだけあるものじゃなかった。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"私の中にも、ちゃんと灯っていた。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"この旅は、私が私を迎えに行く旅だったんだ。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"私は、私を助けてもいい。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"私は、私の味方になっていい。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"影があるまま、私は光を選んでいい。"}
+    ]}
+  ],
+  resultScreen:{
+    types:[
+      {typeId:"ibuki",title:"一人で戦ってきた光",text:[
+        "{{name}}に灯った旅のしるしは、",
+        "『一人で戦ってきた光』でした。",
+        "あなたはきっと、誰かに頼る前に、自分でなんとかしようとしてきた人。",
+        "でもこの旅で、{{name}}は知りました。",
+        "一人で戦うことだけが、強さではないこと。",
+        "あなたは、助けを求めてもいい。支えられてもいい。一緒に歩いてもいい。"
+      ]},
+      {typeId:"kotoha",title:"心の声を取り戻す光",text:[
+        "{{name}}に灯った旅のしるしは、",
+        "『心の声を取り戻す光』でした。",
+        "あなたはきっと、誰かを傷つけないように、自分の気持ちを後回しにしてきた人。",
+        "本当の気持ちを言葉にすることは、誰かを困らせることではない。",
+        "それは、自分を見失わないための灯りです。",
+        "あなたの本音は、わがままではありません。あなたがあなたに帰るための、大切な声です。"
+      ]},
+      {typeId:"mamoru",title:"守り続けたやさしさの灯り",text:[
+        "{{name}}に灯った旅のしるしは、",
+        "『守り続けたやさしさの灯り』でした。",
+        "あなたはきっと、誰かのために強くあろうとしてきた人。",
+        "守る人も、泣いていい。守る人も、守られていい。",
+        "やさしさは、自分を削ることではありません。",
+        "これからは、そのやさしさを、あなた自身にも向けていい。"
+      ]},
+      {typeId:"lumina",title:"ただいまと言える星灯り",text:[
+        "{{name}}に灯った旅のしるしは、",
+        "『ただいまと言える星灯り』でした。",
+        "あなたはきっと、居場所を探してきた人。",
+        "何もできない日があっても、あなたの灯りは消えていない。",
+        "帰れる場所は、完璧な自分だけを迎える場所ではありません。",
+        "そのままのあなたが、『ただいま』と言える場所です。"
+      ]}
+    ],
+    commonResult:{
+      resultName:"影を連れて歩く光",
+      text:[
+        "そして、この旅の最後に、{{name}}の中にもうひとつの光が灯りました。",
+        "それは、『影を連れて歩く光』。",
+        "影は、完全に消えたわけではありません。",
+        "怖さも、弱さも、涙も、なかったことにはなりません。",
+        "けれどもう、それは{{name}}を飲み込むだけの闇ではありません。",
+        "影があるまま、光を選んでいい。",
+        "{{name}}は、{{name}}の味方になっていい。"
+      ]
+    }
+  },
+  finScene:{
+    image:"5-20.png",
+    title:"Fin",
+    lines:[
+      {type:"narration",text:"朝の光が、{{name}}の頬を照らした。"},
+      {type:"narration",text:"胸の奥では、ターコイズブルーの光と、小さな黒い星が並んで灯っていた。"},
+      {type:"dialogue",speaker:"{{name}}（心の声）",text:"影があるまま、私は光を選んでいい。"},
+      {type:"narration",text:"{{name}}は、じょりぃと一緒に歩き出した。"},
+      {type:"narration",text:"終わりではなく、これからの日々へ。"}
+    ]
+  }
+};
+</script>
+</body>
+</html>
