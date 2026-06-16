@@ -813,7 +813,7 @@ const CHAPTER_LABELS = {
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let playerName = "ゆわ";
+let playerName = "あなた";
 let scores = { light:0, moon:0, fire:0, deep:0 };
 let lastScore = null;
 
@@ -922,7 +922,7 @@ function checkContinue() {
 function continueGame() {
   const saved = loadProgress();
   if (!saved) return;
-  playerName = saved.playerName || 'ゆわ';
+  playerName = saved.playerName || 'あなた';
   scores = saved.scores || { light:0, moon:0, fire:0, deep:0 };
   lastScore = saved.lastScore || null;
 
@@ -972,7 +972,7 @@ function startTitle() {
   SafeStorage.remove(SAVE_KEY);
   scores = { light:0, moon:0, fire:0, deep:0 };
   lastScore = null;
-  playerName = 'ゆわ';
+  playerName = 'あなた';
   document.getElementById('title-screen').classList.remove('active');
   document.getElementById('game-screen').classList.add('active');
   buildAllSteps();
@@ -1810,7 +1810,7 @@ function showNameInput() {
 
 function submitName() {
   const val = document.getElementById('name-input').value.trim();
-  playerName = val || 'ゆわ';
+  playerName = val || 'あなた';
   document.getElementById('name-input-overlay').classList.remove('show');
   waitingName = false;
   stepIdx++;
