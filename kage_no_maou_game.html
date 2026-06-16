@@ -1405,7 +1405,10 @@ function buildEnding() {
 // STEP DISPLAY ENGINE
 // ═══════════════════════════════════════════
 function showStep() {
-  if (stepIdx >= steps.length) { showResultScreen(); return; }
+  if (stepIdx >= steps.length) {
+    // FINシーンまで終わった場合は何もしない（最初からボタンが表示済み）
+    return;
+  }
   const step = steps[stepIdx];
 
   updateBadge(step.chapterId);
