@@ -279,7 +279,23 @@ html {
   line-height:2.2; padding-top:12px;
 }
 
-.fade-up { animation:fadeUp .45s ease forwards; }
+/* 話者カラー */
+:root {
+  --spk-yuwa:    #6ecfcf;   /* ターコイズブルー：ゆわ */
+  --spk-jolly:   #c8d96b;   /* 黄緑ゴールド：じょりぃ */
+  --spk-ibuki:   #a0b8cc;   /* スチールブルー：イブキ */
+  --spk-kotoha:  #c4a8e8;   /* ラベンダー：コトハ */
+  --spk-mamoru:  #e0a07a;   /* テラコッタ：マモル */
+  --spk-lumina:  #e8c96a;   /* アンバー：ルミナ */
+  --spk-shadow:  #b07acc;   /* 暗い紫：影・魔王系 */
+}
+.spk-yuwa   { color:var(--spk-yuwa)   !important; }
+.spk-jolly  { color:var(--spk-jolly)  !important; }
+.spk-ibuki  { color:var(--spk-ibuki)  !important; }
+.spk-kotoha { color:var(--spk-kotoha) !important; }
+.spk-mamoru { color:var(--spk-mamoru) !important; }
+.spk-lumina { color:var(--spk-lumina) !important; }
+.spk-shadow { color:var(--spk-shadow) !important; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
 
 #tap-hint {
@@ -577,6 +593,7 @@ const ENDING_SCORE_MAP = {
 
 // JOIN BANNERS
 const JOIN_DATA = {
+  "イブキ加入":  { icon:"⚔️", name:"イブキ", sub:"孤高の剣士" },
   "コトハ加入": { icon:"🪄", name:"コトハ", sub:"言葉の魔法使い" },
   "マモル加入": { icon:"🛡", name:"マモル", sub:"守りの戦士" }
 };
@@ -613,11 +630,10 @@ const SCENE_BGM_MAP = {
 
 // 戦闘シーン（戦闘終了後は章のBGMに戻る）
 const BATTLE_SCENES = new Set([
-  '1-2',                                    // 第1章 イブキ戦
-  'scene_10',                               // 第2章 忘却の影司祭戦
-  '3-8', '3-9', '3-12',                    // 第3章 嘆きの谷
-  '4-7',                                    // 第4章 星喰いの影
-  '5-4', '5-5', '5-6',                     // 第5章 廊下
+  '1-7-1', '1-7-2',                          // 第1章 イブキ戦（光の盾・共闘）
+  'scene_9', 'scene_10',                     // 第2章 影司祭登場・戦闘
+  // 第3章・第4章は戦闘BGMなし
+  '5-4', '5-5', '5-6',                       // 第5章 廊下
 ]);
 
 const BOSS_SCENES = new Set([
@@ -627,17 +643,16 @@ const BOSS_SCENES = new Set([
 
 // 戦闘終了後に章BGMに戻るシーン
 const BATTLE_END_SCENES = new Set([
-  '1-3',          // 第1章 イブキ加入後
-  '3-13',         // 第3章 マモル加入後
-  '4-8',          // 第4章 戦闘後
-  '5-7', '5-8',   // 第5章 廊下後
-  '5-13',         // 第5章 ボス戦後（抱きしめシーン→healing）
+  '1-7-3',         // 第1章 影の裂け目（field BGMへ）
+  'scene_11',      // 第2章 神殿の空気やわらかく（healing BGMへ）
+  '5-7', '5-8',   // 第5章 廊下後（tower BGMへ）
+  '5-13',         // 第5章 ボス戦後（healing BGMへ）
 ]);
 
 // FIN画面（5-20のみ）
 const FIN_SCENES = new Set(['ending-07']);
 
-// エンディング継続シーン（5-17〜5-19 + 結果画面）
+// エンディングBGMシーン（魔王城の闇がほどけていったから）
 const ENDING_SCENES = new Set([
   'ending-01','ending-02','ending-03',
   'ending-04','ending-05','ending-06'
@@ -1115,7 +1130,7 @@ function buildPrologue() {
 
       // endCard（章タイトルカード）
       if (sc.endCard) {
-        pushStep({ type:'chapterTransition', imageId:img, chapterId:cid, speaker:'',
+        pushStep({ type:'chapterTransition', imageId:img, chapterId:'chapter1', speaker:'',
           text:`${sc.endCard.title}\n${sc.endCard.subtitle}`, title:'' });
       }
 
@@ -1147,33 +1162,36 @@ function buildChapter1() {
   const sceneMap = {};
   scenes.forEach(s => sceneMap[s.id] = s);
 
-  // 直線メインフロー：選択前まで＋選択後の共通シーン（1-8, 1-9）
-  // 1-5→分岐→1-7-1まではcollectBranchStepsで動的挿入
-  // 1-7-3→分岐→1-8はcollectBranchStepsで動的挿入
-  // 1-8, 1-9はcollectBranchStepsの末尾に含まれる（合流点として自然に到達）
-  const mainFlow = ['1-1','1-2','1-3','1-4','1-5'];
-
-  mainFlow.forEach(sid => {
+  // ── フェーズ1：直線（1-1〜1-5の選択肢まで）──
+  ['1-1','1-2','1-3','1-4'].forEach(sid => {
     const sc = sceneMap[sid];
     if (!sc) return;
-
-    const img = resolveImg(sc.image || '', cid);
-    const title = sc.title || '';
-
-    if (sc.lines && sc.lines.length) {
-      pushLines(sc.lines, img, cid, title, sc.id);
-    }
-
-    if (sc.choices && sc.choices.length) {
-      const opts = sc.choices.map(c => ({
-        label: c.text,
-        score: c.score || {},
-        inlineNextId: c.next,
-        afterLines: []
-      }));
-      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:'', title, choices:opts, ch1SceneMap:sceneMap });
-    }
+    pushLines(sc.lines, resolveImg(sc.image||'', cid), cid, sc.title||'', sid);
   });
+
+  // 1-5：第1選択肢（1-5-x→1-6-x→1-7-1共通→1-7-2→1-7-3の選択肢まで動的展開）
+  const sc5 = sceneMap['1-5'];
+  if (sc5) {
+    const img5 = resolveImg(sc5.image||'', cid);
+    pushLines(sc5.lines, img5, cid, sc5.title||'', '1-5');
+    const opts5 = sc5.choices.map(c => ({
+      label: c.text, score: c.score||{}, inlineNextId: c.next, afterLines:[]
+    }));
+    pushStep({ type:'choice', imageId:img5, chapterId:cid, speaker:'', text:'', title:sc5.title||'', choices:opts5, ch1SceneMap:sceneMap });
+  }
+
+  // ── フェーズ2：合流後の共通シーン（1-8〜1-9）は直接mainFlowに置く ──
+  // 1-7-4-x の分岐は「1-7-3の選択肢」injectで展開されるが、
+  // そのnextは全て'1-8'を指す→ch1SceneMapで1-8以降を展開するとまた重複する
+  // → collectBranchStepsを '1-8' で止めて、1-8・1-9はここで直接出力
+  ['1-8','1-9'].forEach(sid => {
+    const sc = sceneMap[sid];
+    if (!sc) return;
+    pushLines(sc.lines, resolveImg(sc.image||'', cid), cid, sc.title||'', sid);
+  });
+
+  // イブキ加入バナー（1-9の直後・第2章BGMへの切り替えトリガー）
+  pushStep({ type:'joinBanner', chapterId:cid, imageId:'', joinKey:'イブキ加入', speaker:'', text:'', title:'' });
 }
 
 // ═══════════════════════════════════════════
@@ -1275,6 +1293,7 @@ function buildChapter4() {
 
     if (!sc.choice) {
       pushBlocks(sc.blocks, img, cid, title, sc.id);
+      curId = sc.next || null;
     } else {
       pushBlocks(sc.blocks, img, cid, title, sc.id);
       const opts = (sc.choice.options || []).map(o => ({
@@ -1284,9 +1303,9 @@ function buildChapter4() {
         afterLines: []
       }));
       pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:sc.choice.prompt||'', title, choices:opts, ch4SceneMap:sceneMap });
+      // 選択肢があるときはsc.nextへ直接進まない（injectで展開される）
+      curId = null;
     }
-
-    curId = sc.next || null;
   }
 }
 
@@ -1312,6 +1331,8 @@ function buildChapter5() {
 
     if (!sc.choices) {
       pushBlocks(sc.blocks, img, cid, title, sc.id);
+      if (sc.nextChapter === 'ending') { curId = null; break; }
+      curId = sc.next || null;
     } else {
       pushBlocks(sc.blocks, img, cid, title, sc.id);
       const opts = (sc.choices || []).map(o => ({
@@ -1321,10 +1342,9 @@ function buildChapter5() {
         afterLines: []
       }));
       pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:'', title, choices:opts, ch5SceneMap:sceneMap });
+      // 選択肢があるときはsc.nextへ直接進まない（injectで展開される）
+      curId = null;
     }
-
-    if (sc.nextChapter === 'ending') { curId = null; break; }
-    curId = sc.next || null;
   }
 }
 
@@ -1461,17 +1481,27 @@ function showStep() {
   }
 }
 
+function getSpeakerClass(speaker) {
+  if (!speaker) return '';
+  const s = speaker.replace(/[（()）]/g, '').toLowerCase();
+  if (s.includes('{{name}}') || s.includes('ゆわ') || s.includes('name')) return 'spk-yuwa';
+  if (s.includes('じょりぃ') || s.includes('じょり')) return 'spk-jolly';
+  if (s.includes('イブキ') || s.includes('いぶき')) return 'spk-ibuki';
+  if (s.includes('コトハ') || s.includes('ことは')) return 'spk-kotoha';
+  if (s.includes('マモル') || s.includes('まもる')) return 'spk-mamoru';
+  if (s.includes('ルミナ') || s.includes('るみな')) return 'spk-lumina';
+  if (s.includes('影') || s.includes('魔王') || s.includes('闇') || s.includes('小さな声') || s.includes('幼い')) return 'spk-shadow';
+  return '';
+}
+
 function showDialogue(cls, speaker, text) {
   hideChoices();
   $spk.textContent = speaker;
+  $spk.className = getSpeakerClass(speaker); // 話者カラー適用
   $txt.className = cls ? `${cls} fade-up` : 'fade-up';
   $txt.textContent = text;
   $txt.style.display = '';
   $tapHint.style.display = '';
-  // 戻るボタン：stepIdx > 0 のときのみ表示（選択肢・nameInput以外）
-  if (stepIdx > 0 && !waitingChoice) {
-  } else {
-  }
 }
 
 function hideChoices() {
@@ -1628,8 +1658,8 @@ function collectBranchSteps(startId, sceneMap, cid) {
   const result = [];
   const visited = new Set();
   let curId = startId;
-  // 章境界：これらのIDに到達したら止める
-  const CHAPTER_STOPS = new Set(['chapter_2','chapter2','chapter_3','chapter3','chapter_4','chapter4','chapter_5','chapter5','ending']);
+  // 章境界＋第1章合流点：これらのIDに到達したら止める
+  const CHAPTER_STOPS = new Set(['chapter_2','chapter2','chapter_3','chapter3','chapter_4','chapter4','chapter_5','chapter5','ending','1-8']);
 
   while (curId && !visited.has(curId) && !CHAPTER_STOPS.has(curId)) {
     visited.add(curId);
@@ -1645,20 +1675,20 @@ function collectBranchSteps(startId, sceneMap, cid) {
       const t = !isSpeaker ? (b.type === 'narration' ? 'narration' : detectType(b.speaker))
         : b.speaker.includes('心の声') ? 'thought' : 'dialogue';
       const text = Array.isArray(b.text) ? b.text.join('\n') : (b.text||'');
-      result.push({ type:t, imageId:img, chapterId:cid, speaker:b.speaker||'', text, title });
+      result.push({ type:t, imageId:img, chapterId:cid, speaker:b.speaker||'', text, title, sceneId: curId });
     });
 
     if (sc.choices || sc.choice) {
       const choiceData = sc.choices || sc.choice?.options;
       const prompt = sc.choice?.question || sc.choice?.prompt || '';
       const opts = (choiceData || []).map(o => ({
-        label: o.label || o.text,   // ch4/5: label, ch1: text
+        label: o.label || o.text,
         score: o.score || {},
         inlineNextId: o.next,
         afterLines: o.after_lines || []
       }));
       result.push({ type:'choice', imageId:img, chapterId:cid, speaker:'', text:prompt, title, choices:opts,
-        ch1SceneMap: sceneMap, ch4SceneMap: sceneMap, ch5SceneMap: sceneMap });
+        ch1SceneMap: sceneMap, ch4SceneMap: sceneMap, ch5SceneMap: sceneMap, sceneId: curId });
       break;
     }
 
@@ -1756,15 +1786,21 @@ document.getElementById('name-input').addEventListener('keydown', e => {
 function showJoinBanner(key) {
   waitingJoin = true;
   const d = JOIN_DATA[key] || { icon:'✨', name:key, sub:'' };
+  const banner = document.getElementById('join-banner');
   document.getElementById('j-icon').textContent = d.icon;
   document.getElementById('j-name').textContent = d.name;
   document.getElementById('j-sub').textContent = d.sub;
-  document.getElementById('join-banner').classList.add('show');
+  banner.dataset.joinKey = key; // dismissJoinで参照するため保存
+  banner.classList.add('show');
 }
 
 function dismissJoin() {
-  document.getElementById('join-banner').classList.remove('show');
+  const banner = document.getElementById('join-banner');
+  const joinKey = banner.dataset.joinKey || '';
+  banner.classList.remove('show');
   waitingJoin = false;
+  // イブキ加入→第2章BGMへ切り替え
+  if (joinKey === 'イブキ加入') playBGM('healing');
   stepIdx++;
   saveProgress();
   showStep();
