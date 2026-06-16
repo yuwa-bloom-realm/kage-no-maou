@@ -670,48 +670,27 @@ const BGM = {
 const BGM_NO_LOOP = new Set(['title', 'ending', 'fin']);
 
 // 章ごとのBGM
+// 章ごとのBGMマップ（シーン個別切り替えなし・章単位で固定）
 const SCENE_BGM_MAP = {
-  prologue: 'title',
-  chapter1: 'field',
-  chapter2: 'healing',
-  chapter3: 'explore',
-  chapter4: 'lumina',
-  chapter5: 'tower',
-  ending:   'ending'
+  prologue:  'title',
+  chapter1:  'field',
+  chapter2:  'healing',
+  chapter3:  'explore',
+  chapter4:  'lumina',
+  chapter5:  'tower',
+  ending:    'ending',
 };
 
-// 戦闘シーン（戦闘終了後は章のBGMに戻る）
-const BATTLE_SCENES = new Set([
-  'scene_9', 'scene_10',                     // 第2章 影司祭登場・戦闘
-  // 第3章・第4章は戦闘BGMなし
-  '5-4', '5-5', '5-6',                       // 第5章 廊下
-]);
-
-const BOSS_SCENES = new Set([
-  '5-10', '5-11', '5-12',
-  '5-12-light', '5-12-moon', '5-12-fire', '5-12-deep'
-]);
-
-// 戦闘終了後に章BGMに戻るシーン
-const BATTLE_END_SCENES = new Set([
-  'scene_11',      // 第2章 神殿の空気やわらかく（healing BGMへ）
-  '5-7', '5-8',   // 第5章 廊下後（tower BGMへ）
-  '5-13',         // 第5章 ボス戦後（healing BGMへ）
-]);
-
-// FIN画面（5-20のみ）
-const FIN_SCENES = new Set(['ending-07']);
-
-// エンディングBGMシーン（魔王城の闇がほどけていったから）
-const ENDING_SCENES = new Set([
+// シーン個別BGM設定は全て廃止（章固定方式）
+const BATTLE_SCENES   = new Set([]);
+const BOSS_SCENES     = new Set([]);
+const BATTLE_END_SCENES = new Set([]);
+const FIN_SCENES      = new Set(['ending-07']);
+const ENDING_SCENES   = new Set([
   'ending-01','ending-02','ending-03',
   'ending-04','ending-05','ending-06'
 ]);
-
-// 浄化・感動シーン（第5章）
-const HEALING_SCENES = new Set([
-  '5-13', '5-14', '5-14-2', '5-15', '5-16'
-]);
+const HEALING_SCENES  = new Set([]);
 
 let bgmAudio = null;
 let currentBGMKey = null;
@@ -804,25 +783,13 @@ function getBGMKeyForStep(step) {
   const sid = step.sceneId || step.id || '';
   const cid = step.chapterId || '';
 
-  // FIN画面（5-20 最初のステップ）→ Moonlit_Overture
+  // FINシーン
   if (step.isFin || FIN_SCENES.has(sid)) return 'fin';
 
-  // エンディングシーン（5-17〜5-19）→ ending継続
+  // エンディングシーン
   if (ENDING_SCENES.has(sid)) return 'ending';
 
-  // 浄化・感動シーン（第5章）
-  if (HEALING_SCENES.has(sid)) return 'healing';
-
-  // ボス戦
-  if (BOSS_SCENES.has(sid)) return 'boss';
-
-  // 通常戦闘
-  if (BATTLE_SCENES.has(sid)) return 'battle';
-
-  // 戦闘終了→章BGMに戻る
-  if (BATTLE_END_SCENES.has(sid)) return SCENE_BGM_MAP[cid] || 'field';
-
-  // 章ベースのデフォルト
+  // 章固定BGM
   return SCENE_BGM_MAP[cid] || 'field';
 }
 
