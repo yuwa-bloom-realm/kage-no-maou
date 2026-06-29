@@ -409,6 +409,77 @@ html {
 }
 .ni-btn:hover { background:rgba(201,168,76,.1); border-color:var(--gold); }
 
+/* PAYWALL OVERLAY */
+#paywall-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(15,5,30,.96); z-index:90;
+  flex-direction:column; align-items:center; justify-content:flex-start;
+  overflow-y:auto; padding:48px 24px 40px;
+}
+#paywall-overlay.show { display:flex; }
+.pw-inner {
+  max-width:340px; width:100%; margin:0 auto;
+  text-align:center; display:flex; flex-direction:column; align-items:center;
+}
+.pw-divider {
+  width:44px; height:1px;
+  background:linear-gradient(to right,transparent,var(--gold),transparent);
+  margin:0 auto 22px;
+}
+.pw-headline {
+  font-size:16px; line-height:1.85; color:var(--gold-l);
+  font-family:'Noto Serif JP',serif; font-weight:400;
+  margin-bottom:22px; letter-spacing:.02em;
+}
+.pw-body {
+  font-size:13.5px; line-height:2.1; color:rgba(240,235,248,.88);
+  font-family:'Noto Serif JP',serif; font-weight:300;
+  margin-bottom:26px; letter-spacing:.02em; white-space:pre-line;
+}
+.pw-price {
+  font-size:11px; letter-spacing:.25em; color:var(--gold);
+  font-family:'Noto Sans JP',sans-serif; margin-bottom:22px;
+}
+.pw-buy-btn {
+  display:block; width:100%; max-width:280px;
+  background:linear-gradient(135deg, rgba(201,168,76,.18), rgba(123,63,160,.22));
+  border:1px solid rgba(201,168,76,.5); border-radius:40px;
+  padding:15px 20px; color:var(--gold-l);
+  font-size:13px; font-family:'Noto Sans JP',sans-serif;
+  letter-spacing:.18em; cursor:pointer; transition:all .28s;
+  text-decoration:none; margin-bottom:28px;
+}
+.pw-buy-btn:hover { background:rgba(201,168,76,.18); border-color:var(--gold); }
+.pw-passcode-label {
+  font-size:10.5px; letter-spacing:.2em; color:var(--gold);
+  font-family:'Noto Sans JP',sans-serif; margin-bottom:12px; opacity:.85;
+}
+#pw-passcode-input {
+  background:rgba(45,20,87,.5);
+  border:1px solid rgba(201,168,76,.4);
+  border-radius:4px; padding:12px 18px;
+  color:var(--white); font-size:15px;
+  font-family:'Noto Sans JP',sans-serif; font-weight:300;
+  text-align:center; width:100%; max-width:260px;
+  outline:none; transition:border-color .2s; margin-bottom:14px;
+  letter-spacing:.1em;
+}
+#pw-passcode-input:focus { border-color:var(--gold); }
+#pw-passcode-input::placeholder { color:rgba(240,235,248,.3); font-size:12px; }
+.pw-submit-btn {
+  background:transparent;
+  border:1px solid rgba(201,168,76,.45); border-radius:40px;
+  padding:11px 36px; color:var(--gold-l);
+  font-size:12px; font-family:'Noto Sans JP',sans-serif;
+  letter-spacing:.25em; cursor:pointer; transition:all .28s;
+  margin-bottom:10px;
+}
+.pw-submit-btn:hover { background:rgba(201,168,76,.1); border-color:var(--gold); }
+.pw-error {
+  font-size:11px; color:#e08a8a; font-family:'Noto Sans JP',sans-serif;
+  letter-spacing:.1em; min-height:16px; margin-bottom:4px;
+}
+
 /* join banner */
 #join-banner {
   display:none; position:fixed; inset:0;
@@ -598,6 +669,34 @@ html {
   <div class="ni-label">あなたの名前を教えて</div>
   <input id="name-input" type="text" maxlength="10" placeholder="ゆわ" autocomplete="off">
   <button class="ni-btn" onclick="submitName()">決定</button>
+</div>
+
+<!-- PAYWALL OVERLAY -->
+<div id="paywall-overlay">
+  <div class="pw-inner">
+    <div class="pw-divider"></div>
+    <div class="pw-headline">あなたなら、どうする？</div>
+    <div class="pw-body">ひとりで戦い続ける、あの剣士。
+黒い影の奥に渦巻く、声にならなかった想い。
+あの影は、いったい何なのか——？
+
+ただの敵ではない。そんな気配を、あなたはもう感じ取っているはずです。
+
+そしてこれは、決して彼だけの話ではありません。
+影は、実はあなたの周りにも、そっと潜んでいるのです。
+
+ここから先、{{name}}は新たな仲間たちと出会い、それぞれが抱える想いに触れていきます。
+
+影の正体、そしてその先で待っている出会い——
+
+続きを読み終えたとき、あなたの中にも、そっと小さな光が灯っているかもしれません。</div>
+    <a id="pw-buy-link" class="pw-buy-btn" href="https://square.link/u/LdLBDOag" target="_blank" rel="noopener">旅 を 続 け る</a>
+    <div class="pw-price">¥500（購入後、パスコードをメールでお届けします）</div>
+    <div class="pw-passcode-label">パスコードをお持ちの方はこちら</div>
+    <input id="pw-passcode-input" type="text" placeholder="パスコードを入力" autocomplete="off" onkeydown="if(event.key==='Enter')submitPasscode()">
+    <div class="pw-error" id="pw-error"></div>
+    <button class="pw-submit-btn" onclick="submitPasscode()">続 き を 読 む</button>
+  </div>
 </div>
 
 <!-- JOIN BANNER -->
@@ -896,7 +995,7 @@ function saveProgress() {
     // 現在の章IDも保存して、続きから時に章先頭に安全ジャンプできるようにする
     const currentStep = steps[stepIdx];
     const currentChapterId = currentStep ? currentStep.chapterId : null;
-    const data = { playerName, scores, lastScore, stepIdx, currentChapterId };
+    const data = { playerName, scores, lastScore, stepIdx, currentChapterId, paywallUnlocked };
     SafeStorage.set(SAVE_KEY, JSON.stringify(data));
   } catch(e) {}
 }
@@ -925,6 +1024,7 @@ function continueGame() {
   playerName = saved.playerName || 'あなた';
   scores = saved.scores || { light:0, moon:0, fire:0, deep:0 };
   lastScore = saved.lastScore || null;
+  paywallUnlocked = saved.paywallUnlocked || false;
 
   document.getElementById('title-screen').classList.remove('active');
   document.getElementById('game-screen').classList.add('active');
@@ -1715,10 +1815,56 @@ function collectBranchSteps(startId, sceneMap, cid) {
 }
 
 // ═══════════════════════════════════════════
+// PAYWALL
+// ═══════════════════════════════════════════
+const PAYWALL_LOCK_AFTER_SCENE = '1-5'; // このsceneIdの最後（選択肢の手前）で止める
+const PAYWALL_PASSCODE = 'jolly2606'; // 本番パスコード（2026年6月完成・じょりぃ）
+let paywallUnlocked = false;
+
+function isPaywallGate() {
+  if (paywallUnlocked) return false;
+  const cur = steps[stepIdx];
+  const nxt = steps[stepIdx + 1];
+  if (!cur || !nxt) return false;
+  return cur.sceneId === PAYWALL_LOCK_AFTER_SCENE && nxt.sceneId !== PAYWALL_LOCK_AFTER_SCENE;
+}
+
+function showPaywall() {
+  const bodyEl = document.querySelector('.pw-body');
+  if (bodyEl && !bodyEl.dataset.replaced) {
+    bodyEl.textContent = N(bodyEl.textContent);
+    bodyEl.dataset.replaced = '1';
+  }
+  document.getElementById('paywall-overlay').classList.add('show');
+  const input = document.getElementById('pw-passcode-input');
+  if (input) { input.value = ''; input.focus(); }
+  document.getElementById('pw-error').textContent = '';
+}
+
+function hidePaywall() {
+  document.getElementById('paywall-overlay').classList.remove('show');
+}
+
+function submitPasscode() {
+  const input = document.getElementById('pw-passcode-input');
+  const val = (input.value || '').trim();
+  if (val === PAYWALL_PASSCODE) {
+    paywallUnlocked = true;
+    hidePaywall();
+    stepIdx++;
+    saveProgress();
+    showStep();
+  } else {
+    document.getElementById('pw-error').textContent = 'パスコードが正しくありません';
+  }
+}
+
+// ═══════════════════════════════════════════
 // TAP HANDLER
 // ═══════════════════════════════════════════
 function handleTap() {
   if (waitingChoice || waitingName || waitingJoin) return;
+  if (isPaywallGate()) { showPaywall(); return; }
   stepIdx++;
   saveProgress();
   showStep();
