@@ -1239,7 +1239,7 @@ function buildPrologue() {
         const isNarr = sc.type === 'narrationBlock' && !speaker;
         const type = isThought ? 'thought' : isNarr ? 'narration' : 'dialogue';
         const text = textLines.join('\n');
-        pushStep({ type, imageId:img, chapterId:cid, speaker:N(speaker), text:N(text), title:'' });
+        pushStep({ type, imageId:img, chapterId:cid, speaker:speaker, text:text, title:'' });
       });
 
       // endCard（章タイトルカード）
@@ -1250,7 +1250,7 @@ function buildPrologue() {
 
     } else if (sc.type === 'nameInput') {
       const text = Array.isArray(sc.text) ? sc.text.join('\n') : sc.text;
-      pushStep({ type:'nameInput', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:N(text), title:'' });
+      pushStep({ type:'nameInput', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:text, title:'' });
 
     } else if (sc.type === 'choice') {
       const text = Array.isArray(sc.text) ? sc.text.join('\n') : sc.text;
@@ -1260,7 +1260,7 @@ function buildPrologue() {
         inlineNextId: c.next,
         afterLines: []
       }));
-      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:N(text), title:'', choices:opts, prologueSceneMap:sceneMap });
+      pushStep({ type:'choice', imageId:img, chapterId:cid, speaker:sc.speaker||'', text:text, title:'', choices:opts, prologueSceneMap:sceneMap });
     }
 
     curId = sc.next || null;
@@ -1763,7 +1763,7 @@ function collectPrologueBranch(startId, sceneMap, cid) {
 
       const isThought = speaker.includes('心の声') || speaker.includes('（心の声）');
       const type = isThought ? 'thought' : (speaker ? 'dialogue' : 'narration');
-      result.push({ type, imageId:img, chapterId:cid, speaker:N(speaker), text:N(textLines.join('\n')), title:'' });
+      result.push({ type, imageId:img, chapterId:cid, speaker:speaker, text:textLines.join('\n'), title:'' });
     });
 
     curId = sc.next || null;
