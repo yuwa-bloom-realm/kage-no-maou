@@ -1820,8 +1820,12 @@ function collectBranchSteps(startId, sceneMap, cid) {
 const PAYWALL_LOCK_AFTER_SCENE = '1-5'; // このsceneIdの最後（選択肢の手前）で止める
 const PAYWALL_PASSCODE = 'jolly2606'; // 本番パスコード（2026年6月完成・じょりぃ）
 let paywallUnlocked = false;
+// 有料のしきりを使うか。false = 最後まで無料で遊べる（2026年11月〜）
+// また有料にしたくなったら true に戻すだけでOK
+const PAYWALL_ENABLED = false;
 
 function isPaywallGate() {
+  if (!PAYWALL_ENABLED) return false;
   if (paywallUnlocked) return false;
   const cur = steps[stepIdx];
   const nxt = steps[stepIdx + 1];
